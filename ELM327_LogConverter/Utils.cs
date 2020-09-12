@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ELM327_LogConverter {
 	static class Utils {
+		static Random Rnd = new Random();
 
 		public static float Lerp(float F1, float F2, float Amt) {
 			return F1 * (1.0f - Amt) + F2 * Amt;
@@ -41,6 +43,10 @@ namespace ELM327_LogConverter {
 				Add += Nearest;
 
 			return ((Num + Add) / Nearest) * Nearest;
+		}
+
+		public static Color RandomColor() {
+			return Color.FromArgb(Rnd.Next(0, 256), Rnd.Next(0, 256), Rnd.Next(0, 256));
 		}
 	}
 }

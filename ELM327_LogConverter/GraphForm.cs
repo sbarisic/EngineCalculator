@@ -36,15 +36,14 @@ namespace ELM327_LogConverter {
 			MaxRPM = Utils.RoundToNearest(MaxRPM, 500, false);
 
 			Series series = CreateSeries(Name, MinRPM, MaxRPM, Clr);
-			//Series series2 = CreateSeries(Name + " nonsmooth", MinRPM, MaxRPM, Color.Blue);
+			Series series_spd = null; //CreateSeries(Name + "_speed", MinRPM, MaxRPM, Clr);
 
-			PrintGraph(PowerRun, series, MinRPM, MaxRPM);
-			//PrintGraph(PowerRun, series2, MinRPM, MaxRPM, false);
+			PrintGraph(PowerRun, series, series_spd, MinRPM, MaxRPM);
 		}
 
 		Series CreateSeries(string Name, int MinRPM, int MaxRPM, Color Clr) {
 			Series series = chart1.Series.Add(Name);
-			series.ChartType = SeriesChartType.Spline;
+			series.ChartType = SeriesChartType.Line; //SeriesChartType.Spline;
 			series.Color = Clr;
 			series.BorderWidth = 2;
 
@@ -56,12 +55,13 @@ namespace ELM327_LogConverter {
 			return series;
 		}
 
-		static void PrintGraph(IEnumerable<CSVEntry> PowerRun, Series S, int RPMStart, int RPMStop, bool Smooth = true, bool WHP = true) {
+		static void PrintGraph(IEnumerable<CSVEntry> PowerRun, Series S, Series S2, int RPMStart, int RPMStop, bool Smooth = true, bool WHP = true) {
 			//float ColumnRPMWidth = 500.0f / 6;
 
 			int RPMRange = 100;
 			int Count = (RPMStop - RPMStart) / RPMRange;
 
+			float[] RoadSpeed = new float[Count];
 			float[] PowerHP = new float[Count];
 			float[] TorqueNM = new float[Count];
 
@@ -69,6 +69,7 @@ namespace ELM327_LogConverter {
 				int RPM = RPMStart + i * RPMRange;
 				Program.FindNearest(PowerRun, RPM, out CSVEntry Prev, out CSVEntry Next);
 
+				float Spd = 0;
 				float HP = 0;
 				float NM = 0;
 
@@ -77,10 +78,12 @@ namespace ELM327_LogConverter {
 					//NM = Utils.Lerp(0,0,Next.RPM,Next.)
 				} else*/
 				if (Prev != null && Next != null) {
+					Spd = Utils.Lerp(Prev.RPM, Prev.SPD, Next.RPM, Next.SPD, RPM);
 					HP = Utils.Lerp(Prev.RPM, Prev.HP, Next.RPM, Next.HP, RPM);
 				}
 
 				//S.Points.AddXY(RPM, HP);
+				RoadSpeed[i] = Spd;
 				PowerHP[i] = HP;
 				TorqueNM[i] = NM;
 			}
@@ -99,7 +102,11 @@ namespace ELM327_LogConverter {
 
 			for (int i = 0; i < Count; i++) {
 				int RPM = RPMStart + i * RPMRange;
+
 				S.Points.AddXY(RPM, PowerHP[i] * CompensationFactor);
+
+				if (S2 != null)
+					S2.Points.AddXY(RPM, RoadSpeed[i]);
 			}
 		}
 	}

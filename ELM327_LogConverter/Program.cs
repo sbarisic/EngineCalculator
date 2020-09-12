@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Security.Cryptography;
 
 namespace ELM327_LogConverter {
 	class Program {
@@ -18,6 +19,14 @@ namespace ELM327_LogConverter {
 		public static int SPD_Idx = -1;
 
 		static void Main(string[] args) {
+			/*double Pow = Calculator.Calc(5, 3, 0, 0.25, 0);
+
+
+			while (true) {
+			}*/
+
+
+
 			Calculator.LoadCarData(File.ReadAllText("car_data.cfg"));
 
 			//string InputName = "input.csv";
@@ -27,19 +36,20 @@ namespace ELM327_LogConverter {
 				InputName = args[0];
 
 			GraphForm Frm = new GraphForm();
+			//TimeGraphForm Frm = new TimeGraphForm();
 
-			LoadAndDisplayRun(Frm, "2020-09-05 19-04-08.csv", Color.Red);
-			//LoadAndDisplayRun(Frm, "input.csv", Color.Blue);
+			Frm.LoadGraph(LoadRun("input.csv", false), Color.Blue, "Stock");
+			Frm.LoadGraph(LoadRun("2020-09-05 19-04-08.csv", true), Color.Red, "Remap");
 
 			Application.Run(Frm);
 		}
 
-		static void LoadAndDisplayRun(GraphForm Frm, string InputName, Color Clr) {
-			IEnumerable<CSVEntry> PowerRunNew = LoadRun(InputName);
-			Frm.LoadGraph(PowerRunNew, Clr, InputName);
-		}
+		/*static void LoadAndDisplayRun(GraphForm Frm, string InputName, string RunName, Color Clr) {
+			IEnumerable<CSVEntry> PowerRunNew = LoadRun(InputName, false);
+			Frm.LoadGraph(PowerRunNew, Clr, RunName);
+		}*/
 
-		static IEnumerable<CSVEntry> LoadRun(string InputName) {
+		static IEnumerable<CSVEntry> LoadRun(string InputName, bool UseNewMethod) {
 			string[] InputLines = File.ReadAllLines(InputName);
 			List<CSVEntry> ParsedEntries = new List<CSVEntry>();
 
@@ -114,8 +124,24 @@ namespace ELM327_LogConverter {
 
 
 			for (int i = 1; i < ParsedEntries.Count; i++) {
-				float HP = Calculator.Calculate(2, ParsedEntries[i].RPM, ParsedEntries[i - 1].RPM, ParsedEntries[i].DeviceTime, ParsedEntries[i - 1].DeviceTime);
+				float CurRPM = ParsedEntries[i].RPM;
+				float PrevRPM = ParsedEntries[i - 1].RPM;
+
+				float CurTime = ParsedEntries[i].DeviceTime;
+				float PrevTime = ParsedEntries[i - 1].DeviceTime;
+
+				float CurSpeed = ParsedEntries[i].SPD;
+				float PrevSpeed = ParsedEntries[i - 1].SPD;
+
+				float HP = 0;
+
+				if (UseNewMethod)
+					HP = Calculator.Calculate(CurSpeed, PrevSpeed, CurTime, PrevTime);
+				else
+					HP = Calculator.Calculate(2, CurRPM, PrevRPM, CurTime, PrevTime, out CurSpeed);
+
 				ParsedEntries[i].HP = HP;
+				ParsedEntries[i].SPD = CurSpeed;
 			}
 
 			if (File.Exists("out.csv"))
@@ -234,7 +260,7 @@ namespace ELM327_LogConverter {
 
 		static float Stoich = 14.64f;
 
-		public float Length {
+		public int Length {
 			get {
 				return 5;
 			}
@@ -291,6 +317,28 @@ namespace ELM327_LogConverter {
 			}
 		}
 
+		public string GetIndexName(int Idx) {
+			switch (Idx) {
+				case 0:
+					return "AFR";
+
+				case 1:
+					return "TPS";
+
+				case 2:
+					return "RPM";
+
+				case 3:
+					return "MAP";
+
+				case 4:
+					return "Speed";
+
+				default:
+					return "Unknown";
+			}
+		}
+
 		public CSVEntry(string Line) {
 			Entries = Line.Split(new[] { ',' }).Select(Program.StripQuotes).ToArray();
 			Time = DateTime.Parse(Entries[0]);
@@ -341,6 +389,9 @@ namespace ELM327_LogConverter {
 
 		float TryParse(string[] Entries, int Idx) {
 			if (Idx < 0)
+				return -1;
+
+			if (Entries.Length <= Idx)
 				return -1;
 
 			string Str = Entries[Idx];
