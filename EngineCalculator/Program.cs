@@ -63,6 +63,14 @@ namespace EngineCalculator {
 			return m3 * 1000;
 		}
 
+		static float CubicFeetPerMinuteToGramsPerSecondAir(float CFM) {
+			return CFM * 0.5549f;
+		}
+
+		static float GramsPerSecondAirToCubicFeetPerMinute(float CFM) {
+			return CFM * 1.80212650928f;
+		}
+
 		static float PressureAtAlt(float Temperature, float Altitude) {
 			double PressureAtSea = 101325.0f;
 			double R = 8.31432;
