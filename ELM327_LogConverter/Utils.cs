@@ -9,14 +9,14 @@ namespace ELM327_LogConverter {
 	static class Utils {
 		static Random Rnd = new Random();
 
-		public static float Lerp(float F1, float F2, float Amt) {
-			return F1 * (1.0f - Amt) + F2 * Amt;
+		public static double Lerp(double F1, double F2, double Amt) {
+			return F1 * (1.0 - Amt) + F2 * Amt;
 		}
 
-		public static float Lerp(float Key1, float Value1, float Key2, float Value2, float KeyAmt) {
-			float Range = Key2 - Key1;
-			float KeyAmtOffset = KeyAmt - Key1;
-			float Amt = KeyAmtOffset / Range;
+		public static double Lerp(double Key1, double Value1, double Key2, double Value2, double KeyAmt) {
+			double Range = Key2 - Key1;
+			double KeyAmtOffset = KeyAmt - Key1;
+			double Amt = KeyAmtOffset / Range;
 			return Lerp(Value1, Value2, Amt);
 		}
 
@@ -47,6 +47,17 @@ namespace ELM327_LogConverter {
 
 		public static Color RandomColor() {
 			return Color.FromArgb(Rnd.Next(0, 256), Rnd.Next(0, 256), Rnd.Next(0, 256));
+		}
+
+		public static string StripQuotes(string Line) {
+			if (Line.StartsWith("\"") && Line.EndsWith("\""))
+				return Line.Substring(1, Line.Length - 2);
+
+			return Line;
+		}
+
+		public static string ToString(double D) {
+			return string.Format("{0:0.000}", D);
 		}
 	}
 }

@@ -19,15 +19,15 @@ namespace ELM327_LogConverter {
 		private void GraphForm_Load(object sender, EventArgs e) {
 		}
 
-		public void LoadGraph(IEnumerable<CSVEntry> PowerRun, Color Clr, string Name) {
+		public void LoadGraph(LogData PowerRun, Color Clr, string Name) {
 			int MinRPM = 10000;
 			int MaxRPM = 0;
 
-			foreach (CSVEntry Entry in PowerRun) {
-				if (Entry.RPM < MinRPM)
-					MinRPM = (int)Entry.RPM;
-				if (Entry.RPM > MaxRPM)
-					MaxRPM = (int)Entry.RPM;
+			foreach (LogEntry Entry in PowerRun.DataEntries) {
+				if (Entry[PowerRun.RPM] < MinRPM)
+					MinRPM = (int)Entry[PowerRun.RPM];
+				if (Entry[PowerRun.RPM] > MaxRPM)
+					MaxRPM = (int)Entry[PowerRun.RPM];
 
 				//series.Points.AddXY(Entry.RPM, Entry.HP);
 			}
@@ -36,9 +36,10 @@ namespace ELM327_LogConverter {
 			MaxRPM = Utils.RoundToNearest(MaxRPM, 500, false);
 
 			Series series = CreateSeries(Name, MinRPM, MaxRPM, Clr);
-			Series series_spd = null; //CreateSeries(Name + "_speed", MinRPM, MaxRPM, Clr);
+			Series series_spd = null; // CreateSeries(Name + "_map", MinRPM, MaxRPM, Clr);
 
-			PrintGraph(PowerRun, series, series_spd, MinRPM, MaxRPM);
+			//PrintGraph(PowerRun, series, series_spd, MinRPM, MaxRPM);
+			PrintGraph2(PowerRun, series);
 		}
 
 		Series CreateSeries(string Name, int MinRPM, int MaxRPM, Color Clr) {
@@ -55,7 +56,25 @@ namespace ELM327_LogConverter {
 			return series;
 		}
 
-		static void PrintGraph(IEnumerable<CSVEntry> PowerRun, Series S, Series S2, int RPMStart, int RPMStop, bool Smooth = true, bool WHP = true) {
+		static void PrintGraph2(LogData PowerRun, Series S) {
+			Dictionary<int, List<double>> RPMPower = new Dictionary<int, List<double>>();
+
+			for (int i = 0; i < PowerRun.DataEntries.Length; i++) {
+				int RPM = (int)PowerRun.DataEntries[i][PowerRun.RPM];
+				double Power = PowerRun.DataEntries[i].Calculated.Power;
+
+				if (!RPMPower.ContainsKey(RPM))
+					RPMPower.Add(RPM, new List<double>());
+
+				RPMPower[RPM].Add(Power);
+			}
+
+			foreach (var KV in RPMPower) {
+				S.Points.AddXY(KV.Key, KV.Value.Sum() / KV.Value.Count);
+			}
+		}
+
+		static void PrintGraph(LogData PowerRun, Series S, Series S2, int RPMStart, int RPMStop, bool Smooth = false, bool WHP = true) {
 			//float ColumnRPMWidth = 500.0f / 6;
 
 			int RPMRange = 100;
@@ -67,7 +86,10 @@ namespace ELM327_LogConverter {
 
 			for (int i = 0; i < Count; i++) {
 				int RPM = RPMStart + i * RPMRange;
-				Program.FindNearest(PowerRun, RPM, out CSVEntry Prev, out CSVEntry Next);
+				//Program.FindNearest(PowerRun, RPM, out LogEntry Prev, out LogEntry Next);
+
+				PowerRun.FindNearest(RPM, out LogEntry Prev, out LogEntry Next);
+
 
 				float Spd = 0;
 				float HP = 0;
@@ -78,8 +100,8 @@ namespace ELM327_LogConverter {
 					//NM = Utils.Lerp(0,0,Next.RPM,Next.)
 				} else*/
 				if (Prev != null && Next != null) {
-					Spd = Utils.Lerp(Prev.RPM, Prev.SPD, Next.RPM, Next.SPD, RPM);
-					HP = Utils.Lerp(Prev.RPM, Prev.HP, Next.RPM, Next.HP, RPM);
+					Spd = (float)Utils.Lerp(Prev[PowerRun.RPM], Prev[PowerRun.Speed], Next[PowerRun.RPM], Next[PowerRun.Speed], RPM);
+					HP = (float)Utils.Lerp(Prev[PowerRun.RPM], Prev.Calculated.Power, Next[PowerRun.RPM], Next.Calculated.Power, RPM);
 				}
 
 				//S.Points.AddXY(RPM, HP);

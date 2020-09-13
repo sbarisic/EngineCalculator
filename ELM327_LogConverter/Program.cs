@@ -19,18 +19,16 @@ namespace ELM327_LogConverter {
 		public static int SPD_Idx = -1;
 
 		static void Main(string[] args) {
-			/*double Pow = Calculator.Calc(5, 3, 0, 0.25, 0);
-
-
-			while (true) {
-			}*/
-
-
-
 			Calculator.LoadCarData(File.ReadAllText("car_data.cfg"));
 
-			//string InputName = "input.csv";
-			string InputName = "2020-09-05 19-04-08.csv";
+			Main2();
+			return;
+
+
+
+
+			string InputName = "input.csv";
+			//string InputName = "2020-09-05 19-04-08.csv";
 
 			if (args.Length != 0)
 				InputName = args[0];
@@ -38,8 +36,19 @@ namespace ELM327_LogConverter {
 			GraphForm Frm = new GraphForm();
 			//TimeGraphForm Frm = new TimeGraphForm();
 
-			Frm.LoadGraph(LoadRun("input.csv", false), Color.Blue, "Stock");
-			Frm.LoadGraph(LoadRun("2020-09-05 19-04-08.csv", true), Color.Red, "Remap");
+			//Frm.LoadGraph(LoadRun("input.csv", false), Color.Blue, "Stock");
+			//Frm.LoadGraph(LoadRun("2020-09-05 19-04-08.csv", true), Color.Red, "Remap");
+			//Frm.LoadGraph(LoadRun("2020-09-12 19-48-04-fix.csv", true), Color.Green, "Remap 2");
+
+			Application.Run(Frm);
+		}
+
+		static void Main2() {
+			LogData Log = new LogData();
+			Log.Parse("2020-09-12 19-48-04-fix.csv");
+
+			GraphForm Frm = new GraphForm();
+			Frm.LoadGraph(Log, Color.Red, "Remap 2");
 
 			Application.Run(Frm);
 		}
@@ -177,9 +186,9 @@ namespace ELM327_LogConverter {
 					float HP = 0;
 
 					if (Prev == null && Next != null)
-						HP = Utils.Lerp(0, 0, Next.RPM, Next.HP, CurRPM);
+						HP = (float)Utils.Lerp(0, 0, Next.RPM, Next.HP, CurRPM);
 					else if (Prev != null && Next != null)
-						HP = Utils.Lerp(Prev.RPM, Prev.HP, Next.RPM, Next.HP, CurRPM);
+						HP = (float)Utils.Lerp(Prev.RPM, Prev.HP, Next.RPM, Next.HP, CurRPM);
 
 					int ColumnHeight = (int)(HP / 10);
 

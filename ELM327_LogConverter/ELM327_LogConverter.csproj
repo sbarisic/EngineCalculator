@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Calculator.cs" />
+    <Compile Include="CSVParser.cs" />
     <Compile Include="TimeGraphForm.cs">
       <SubType>Form</SubType>
     </Compile>

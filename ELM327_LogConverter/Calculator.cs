@@ -108,12 +108,12 @@ namespace ELM327_LogConverter {
 			return Hp + DragHp;
 		}
 
-		public static float Calculate(float CurSpeed, float PrevSpeed, float CurTime, float PrevTime) {
-			float TotalWeight = Weight + Weight2;
+		public static float Calculate(double CurSpeed, double PrevSpeed, double CurTime, double PrevTime) {
+			double TotalWeight = Weight + Weight2;
 
-			float Hp = Calc(TotalWeight, CurSpeed, PrevSpeed, CurTime, PrevTime);
-			float DragHp = CalculateDragHp(CurSpeed);
-			return Hp + DragHp;
+			double Hp = Calc(TotalWeight, CurSpeed, PrevSpeed, CurTime, PrevTime);
+			double DragHp = CalculateDragHp(CurSpeed);
+			return (float)(Hp + DragHp);
 		}
 
 		static float CalculateDragHp(double CurSpeed) {
@@ -122,7 +122,8 @@ namespace ELM327_LogConverter {
 		}
 
 		public static float Calc(double Mass, double CurSpeed, double PrevSpeed, double CurTime, double PrevTime) {
-			//Console.Write("Mass = {0}, CurSpeed = {1}, PrevSpeed = {2}, CurTime = {3}, PrevTime = {4}, HP = ", Mass, (int)CurSpeed, (int)PrevSpeed, CurTime, PrevTime);
+			//Console.Write("Mass = {0}, CurSpeed = {1}, PrevSpeed = {2}, CurTime = {3}, PrevTime = {4}", Mass, (int)CurSpeed, (int)PrevSpeed, CurTime, PrevTime);
+			//Console.Write(" Dt = {0}", CurTime - PrevTime);
 
 			double kmh0 = PrevSpeed;
 			double kmh1 = CurSpeed;
@@ -136,7 +137,7 @@ namespace ELM327_LogConverter {
 			double p = w / t;
 
 			float HP = (float)((p * 1.34102) / 1000);
-			//Console.WriteLine(HP);
+			//Console.WriteLine("HP = {0}", HP);
 			return HP;
 		}
 
