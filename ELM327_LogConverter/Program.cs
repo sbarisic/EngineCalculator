@@ -44,11 +44,14 @@ namespace ELM327_LogConverter {
 		}
 
 		static void Main2() {
-			LogData Log = new LogData();
-			Log.Parse("2020-09-12 19-48-04-fix.csv");
+			LogData Log = new LogData("2020-09-12 19-48-04-fix.csv");
+			LogData Log2 = new LogData("2020-09-05 19-04-08.csv");
+			//LogData Log3 = new LogData("input.csv");
 
 			GraphForm Frm = new GraphForm();
 			Frm.LoadGraph(Log, Color.Red, "Remap 2");
+			Frm.LoadGraph(Log2, Color.Blue, "Remap 1");
+			//Frm.LoadGraph(Log3, Color.Green, "Stock");
 
 			Application.Run(Frm);
 		}

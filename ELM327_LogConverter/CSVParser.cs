@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Reflection;
 using System.IO;
 using System.Globalization;
+using System.Windows.Forms;
 
 namespace ELM327_LogConverter {
 	public delegate double ParseFunc(string Str);
@@ -27,6 +28,10 @@ namespace ELM327_LogConverter {
 		public LogData() {
 			LogIndexFields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).Where(F => F.FieldType == typeof(LogIndex)).ToArray();
 			LogIndices = LogIndexFields.Select(F => (LogIndex)F.GetValue(this)).ToArray();
+		}
+
+		public LogData(string CSVFile) : this() {
+			Parse(CSVFile);
 		}
 
 		public void Parse(string CSVFile) {
@@ -64,17 +69,17 @@ namespace ELM327_LogConverter {
 				}
 			}
 
-			//CalculatedEntries = new CalculatedEntry[DataEntries.Length];
-			//CalculatedEntries[0] = new CalculatedEntry(0);
+			// Calculate all data
+			const double CalcInterval = 0.5;
 
 			int PrevIdx = 0;
-			//double Dt = 0;
+			double Dt = 0;
 			DataEntries[0].Calculated = new CalculatedEntry(0);
 
 			for (int i = 1; i < DataEntries.Length; i++) {
-				/*Dt = DataEntries[i][DeviceTime] - DataEntries[PrevIdx][DeviceTime];
-				if (Dt < 1)
-					continue;*/
+				Dt = DataEntries[i][DeviceTime] - DataEntries[PrevIdx][DeviceTime];
+				if (Dt < CalcInterval)
+					continue;
 
 				double CurTime = DataEntries[i][DeviceTime];
 				double PrevTime = DataEntries[PrevIdx][DeviceTime];
@@ -83,6 +88,27 @@ namespace ELM327_LogConverter {
 				DataEntries[i].Calculated = new CalculatedEntry(Power);
 
 				PrevIdx = i;
+			}
+
+			int LastIdx = DataEntries.Length - 1;
+			if (DataEntries[LastIdx].Calculated == null) {
+				/*int Next = FindPrevious(LastIdx, null);
+				int Prev = FindPrevious(Next, null);
+
+				DataEntries[LastIdx].Calculated = new CalculatedEntry(this, DataEntries[Prev], DataEntries[Next], DataEntries[LastIdx][DeviceTime]);*/
+
+				int Prev = FindPrevious(LastIdx, null);
+				DataEntries[LastIdx].Calculated = new CalculatedEntry(DataEntries[Prev].Calculated);
+			}
+
+			// Interpolate calculated data
+			for (int i = 0; i < DataEntries.Length; i++) {
+				if (DataEntries[i].Calculated == null) {
+					LogEntry Prev = DataEntries[FindPrevious(i, null)];
+					LogEntry Next = DataEntries[FindNext(i, null)];
+
+					DataEntries[i].Calculated = new CalculatedEntry(this, Prev, Next, DataEntries[i][DeviceTime]);
+				}
 			}
 		}
 
@@ -99,8 +125,13 @@ namespace ELM327_LogConverter {
 
 		int FindNext(int StartIdx, LogIndex Idx) {
 			for (int i = StartIdx + 1; i < DataEntries.Length; i++) {
-				if (DataEntries[i][Idx] != -1)
-					return i;
+				if (Idx != null) {
+					if (DataEntries[i][Idx] != -1)
+						return i;
+				} else {
+					if (DataEntries[i].Calculated != null)
+						return i;
+				}
 			}
 
 			return -1;
@@ -108,8 +139,13 @@ namespace ELM327_LogConverter {
 
 		int FindPrevious(int StartIdx, LogIndex Idx) {
 			for (int i = StartIdx - 1; i >= 0; i--) {
-				if (DataEntries[i][Idx] != -1)
-					return i;
+				if (Idx != null) {
+					if (DataEntries[i][Idx] != -1)
+						return i;
+				} else {
+					if (DataEntries[i].Calculated != null)
+						return i;
+				}
 			}
 
 			return -1;
@@ -167,6 +203,15 @@ namespace ELM327_LogConverter {
 
 		public CalculatedEntry(double Power) {
 			this.Power = Power;
+		}
+
+		public CalculatedEntry(CalculatedEntry Copy) {
+			Power = Copy.Power;
+			Torque = Copy.Torque;
+		}
+
+		public CalculatedEntry(LogData Data, LogEntry Prev, LogEntry Next, double Time) {
+			Power = Utils.Lerp(Prev[Data.DeviceTime], Prev.Calculated.Power, Next[Data.DeviceTime], Next.Calculated.Power, Time);
 		}
 
 		public override string ToString() {

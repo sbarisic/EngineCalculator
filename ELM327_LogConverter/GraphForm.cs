@@ -44,7 +44,7 @@ namespace ELM327_LogConverter {
 
 		Series CreateSeries(string Name, int MinRPM, int MaxRPM, Color Clr) {
 			Series series = chart1.Series.Add(Name);
-			series.ChartType = SeriesChartType.Line; //SeriesChartType.Spline;
+			series.ChartType = SeriesChartType.Spline; //SeriesChartType.Spline;
 			series.Color = Clr;
 			series.BorderWidth = 2;
 
@@ -69,8 +69,10 @@ namespace ELM327_LogConverter {
 				RPMPower[RPM].Add(Power);
 			}
 
-			foreach (var KV in RPMPower) {
-				S.Points.AddXY(KV.Key, KV.Value.Sum() / KV.Value.Count);
+			Tuple<int, double>[] RPMPowerPairs = RPMPower.Select(KV => new Tuple<int, double>(KV.Key, KV.Value.Average())).OrderBy(KV => KV.Item1).ToArray();
+
+			foreach (var KV in RPMPowerPairs) {
+				S.Points.AddXY(KV.Item1, KV.Item2);
 			}
 		}
 
