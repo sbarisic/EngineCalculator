@@ -136,12 +136,12 @@ namespace ELM327_LogConverter {
 			double w = f * d;
 			double p = w / t;
 
-			float HP = (float)((p * 1.34102) / 1000);
+			float HP = (float)((p * 1.34102) / 1000.0);
 			//Console.WriteLine("HP = {0}", HP);
 			return HP;
 		}
 
-		public static double CalcSpeed(int RunGear, float RPM, bool MPH = false) {
+		public static double CalcSpeed(int RunGear, double RPM, bool MPH = false) {
 			double TransmissionRatio = Gear[RunGear - 1];
 			double Speed = RPM * TireDiam / (1.0 * TransmissionRatio * Final * 336.0);
 
@@ -151,9 +151,9 @@ namespace ELM327_LogConverter {
 			return Speed;
 		}
 
-		public static float CalcTorque(float PowerHP, float RPM) {
+		public static double CalcTorque(double PowerHP, double RPM) {
 			double PowerKW = PowerHP * 0.7457;
-			return (float)(9.5488 * PowerKW / RPM);
+			return 9548.8 * (PowerKW / RPM);
 		}
 	}
 }

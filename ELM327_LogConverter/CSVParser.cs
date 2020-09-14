@@ -14,8 +14,8 @@ namespace ELM327_LogConverter {
 	public class LogData {
 		public LogIndex DeviceTime = new LogIndex("Device time", LogIndex.ParseDate);
 		public LogIndex RPM = new LogIndex("Engine RPM (rpm)", LogIndex.ParseNum);
-		public LogIndex Speed = new LogIndex("Vehicle speed (km/h)", LogIndex.ParseNum);
-		public LogIndex MAP = new LogIndex("Intake manifold absolute pressure (kPa)", LogIndex.ParseNum);
+		LogIndex Speed = new LogIndex("Vehicle speed (km/h)", LogIndex.ParseNum);
+		LogIndex MAP = new LogIndex("Intake manifold absolute pressure (kPa)", LogIndex.ParseNum);
 
 		public LogEntry[] DataEntries;
 		//public CalculatedEntry[] CalculatedEntries;
@@ -34,7 +34,7 @@ namespace ELM327_LogConverter {
 			Parse(CSVFile);
 		}
 
-		public void Parse(string CSVFile) {
+		void Parse(string CSVFile) {
 			DataEntries = ParseEntries(CSVFile).OrderBy(E => E[DeviceTime]).ToArray();
 			double StartTime = DataEntries[0][DeviceTime];
 
@@ -69,8 +69,10 @@ namespace ELM327_LogConverter {
 				}
 			}
 
+
+
 			// Calculate all data
-			const double CalcInterval = 0.5;
+			const double CalcInterval = 0.0;
 
 			int PrevIdx = 0;
 			double Dt = 0;
@@ -151,8 +153,15 @@ namespace ELM327_LogConverter {
 			return -1;
 		}
 
-		double GetSpeed(int Idx) {
-			return DataEntries[Idx][Speed];
+		public double GetSpeed(int Idx) {
+			return GetSpeed(DataEntries[Idx]);
+		}
+
+		public double GetSpeed(LogEntry Entry) {
+			if (Speed.IsValid())
+				return Entry[Speed];
+
+			return Calculator.CalcSpeed(2, Entry[RPM]);
 		}
 
 		LogIndex GetField(string Name) {
@@ -182,10 +191,15 @@ namespace ELM327_LogConverter {
 							Idx.Index = DataCount++;
 						}
 					}
+
+					LogIndices = LogIndices.Where(LI => LI.IsValid()).ToArray();
 				} else {
 					LogEntry Entry = new LogEntry(DataCount);
 
-					foreach (var LogIndex in LogIndices) {
+					foreach (LogIndex LogIndex in LogIndices) {
+						/*if (!LogIndex.IsValid())
+							continue;*/
+
 						Entry[LogIndex] = LogIndex.Parse(Values[LogIndex.CsvIndex]);
 					}
 
@@ -194,7 +208,16 @@ namespace ELM327_LogConverter {
 			}
 		}
 
+		public string GenerateCSV() {
+			StringBuilder SB = new StringBuilder();
+			SB.AppendLine(string.Join(";", LogIndices.OrderBy(LI => LI.Index).Select(LI => LI.Name).ToArray()));
 
+			foreach (LogEntry Entry in DataEntries) {
+				SB.AppendLine(Entry.ToString());
+			}
+
+			return SB.ToString();
+		}
 	}
 
 	public class CalculatedEntry {
@@ -215,7 +238,7 @@ namespace ELM327_LogConverter {
 		}
 
 		public override string ToString() {
-			return Utils.ToString(Power);
+			return Utils.ToString(Power) + ", " + Utils.ToString(Torque);
 		}
 	}
 
@@ -265,6 +288,13 @@ namespace ELM327_LogConverter {
 
 			this.Name = Name;
 			this.Parse = Parse;
+		}
+
+		public bool IsValid() {
+			if (Index == -1)
+				return false;
+
+			return true;
 		}
 
 		public static double ParseDate(string Str) {

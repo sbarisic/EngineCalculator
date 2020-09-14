@@ -20,18 +20,18 @@ namespace ELM327_LogConverter {
 			return Lerp(Value1, Value2, Amt);
 		}
 
-		public static void NoiseReduction(ref float[] Data, int Severity = 1) {
+		public static void NoiseReduction(ref double[] Data, int Severity = 1) {
 			for (int i = 1; i < Data.Length; i++) {
 				int start = (i - Severity > 0 ? i - Severity : 0);
 				int end = (i + Severity < Data.Length ? i + Severity : Data.Length);
 
-				float sum = 0;
+				double sum = 0;
 
 				for (int j = start; j < end; j++) {
 					sum += Data[j];
 				}
 
-				float avg = sum / (end - start);
+				double avg = sum / (end - start);
 				Data[i] = avg;
 			}
 		}

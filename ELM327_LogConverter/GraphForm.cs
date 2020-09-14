@@ -44,35 +44,25 @@ namespace ELM327_LogConverter {
 
 		Series CreateSeries(string Name, int MinRPM, int MaxRPM, Color Clr) {
 			Series series = chart1.Series.Add(Name);
-			series.ChartType = SeriesChartType.Spline; //SeriesChartType.Spline;
+			series.ChartType = SeriesChartType.Line; //SeriesChartType.Spline;
 			series.Color = Clr;
 			series.BorderWidth = 2;
+			series.SetCustomProperty("LineTension", "0.1");
+
 
 			chart1.ChartAreas[0].AxisX.Maximum = MaxRPM;
 			chart1.ChartAreas[0].AxisX.Minimum = MinRPM;
 			chart1.ChartAreas[0].AxisX.Interval = 200;
-			chart1.ChartAreas[0].AxisY.Interval = 5;
+			chart1.ChartAreas[0].AxisY.Interval = 10;
 
 			return series;
 		}
 
 		static void PrintGraph2(LogData PowerRun, Series S) {
-			Dictionary<int, List<double>> RPMPower = new Dictionary<int, List<double>>();
+			foreach (LogEntry E in PowerRun.DataEntries) {
+				double Torque = Calculator.CalcTorque(E.Calculated.Power, E[PowerRun.RPM]);
 
-			for (int i = 0; i < PowerRun.DataEntries.Length; i++) {
-				int RPM = (int)PowerRun.DataEntries[i][PowerRun.RPM];
-				double Power = PowerRun.DataEntries[i].Calculated.Power;
-
-				if (!RPMPower.ContainsKey(RPM))
-					RPMPower.Add(RPM, new List<double>());
-
-				RPMPower[RPM].Add(Power);
-			}
-
-			Tuple<int, double>[] RPMPowerPairs = RPMPower.Select(KV => new Tuple<int, double>(KV.Key, KV.Value.Average())).OrderBy(KV => KV.Item1).ToArray();
-
-			foreach (var KV in RPMPowerPairs) {
-				S.Points.AddXY(KV.Item1, KV.Item2);
+				S.Points.AddXY(E[PowerRun.RPM], E.Calculated.Power);
 			}
 		}
 
@@ -102,7 +92,7 @@ namespace ELM327_LogConverter {
 					//NM = Utils.Lerp(0,0,Next.RPM,Next.)
 				} else*/
 				if (Prev != null && Next != null) {
-					Spd = (float)Utils.Lerp(Prev[PowerRun.RPM], Prev[PowerRun.Speed], Next[PowerRun.RPM], Next[PowerRun.Speed], RPM);
+					Spd = (float)Utils.Lerp(Prev[PowerRun.RPM], PowerRun.GetSpeed(Prev), Next[PowerRun.RPM], PowerRun.GetSpeed(Next), RPM);
 					HP = (float)Utils.Lerp(Prev[PowerRun.RPM], Prev.Calculated.Power, Next[PowerRun.RPM], Next.Calculated.Power, RPM);
 				}
 
@@ -113,7 +103,7 @@ namespace ELM327_LogConverter {
 			}
 
 			if (Smooth) {
-				Utils.NoiseReduction(ref PowerHP, 1);
+				//Utils.NoiseReduction(ref PowerHP, 1);
 
 				/*for (int i = 0; i < PowerHP.Length; i++)
 					PowerHP[i] *= 1.05f;*/
