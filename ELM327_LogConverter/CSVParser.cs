@@ -36,10 +36,6 @@ namespace ELM327_LogConverter {
 
 		void Parse(string CSVFile) {
 			DataEntries = ParseEntries(CSVFile).OrderBy(E => E[DeviceTime]).ToArray();
-			double StartTime = DataEntries[0][DeviceTime];
-
-			for (int i = 0; i < DataEntries.Length; i++)
-				DataEntries[i][DeviceTime] = DataEntries[i][DeviceTime] - StartTime;
 
 			// Fix first entry and last entry to contain all valid data
 			foreach (var Idx in LogIndices) {
@@ -54,7 +50,11 @@ namespace ELM327_LogConverter {
 				}
 			}
 
-			// Interpolate all data inbetween
+			int MaxRPMIdx = -1;
+			int MinRPMIdx = -1;
+			double MaxRPM = -1;
+
+			// Interpolate all data inbetween, find max RPM index
 			for (int i = 0; i < DataEntries.Length; i++) {
 				foreach (var LogIdx in LogIndices) {
 					if (LogIdx == DeviceTime)
@@ -67,38 +67,72 @@ namespace ELM327_LogConverter {
 						DataEntries[i][LogIdx] = Utils.Lerp(Previous[DeviceTime], Previous[LogIdx], Next[DeviceTime], Next[LogIdx], DataEntries[i][DeviceTime]);
 					}
 				}
+
+				if (DataEntries[i][RPM] > MaxRPM) {
+					MaxRPMIdx = i;
+					MaxRPM = DataEntries[i][RPM];
+				}
 			}
 
+			// Find min RPM index
+			for (int i = MaxRPMIdx - 1; i >= 0; i--) {
+				if (DataEntries[i][RPM] < DataEntries[i + 1][RPM]) {
+					MinRPMIdx = i;
+					continue;
+				}
 
+				break;
+			}
+
+			if (MaxRPMIdx == -1 || MinRPMIdx == -1 || (MaxRPM - MinRPMIdx) <= 1)
+				throw new Exception("Invalid data");
+
+			// Trim data
+			DataEntries = DataEntries.Skip(MinRPMIdx).Take(MaxRPMIdx - MinRPMIdx).ToArray();
+
+			// Normalize time
+			double StartTime = DataEntries[0][DeviceTime];
+			for (int i = 0; i < DataEntries.Length; i++)
+				DataEntries[i][DeviceTime] = DataEntries[i][DeviceTime] - StartTime;
+
+			/*// Smooth out speed
+			double[] Speeds = DataEntries.Select(E => GetSpeed(E)).ToArray();
+			for (int i = 0; i < DataEntries.Length; i++)
+				SetSpeed(DataEntries[i], Speeds[i]);*/
 
 			// Calculate all data
-			const double CalcInterval = 0.0;
-
+			const double CalcInterval = 0.5;
 			int PrevIdx = 0;
 			double Dt = 0;
-			DataEntries[0].Calculated = new CalculatedEntry(0);
+			DataEntries[0].Calculated = new CalculatedEntry();
+
+			UKF Filter = new UKF();
 
 			for (int i = 1; i < DataEntries.Length; i++) {
 				Dt = DataEntries[i][DeviceTime] - DataEntries[PrevIdx][DeviceTime];
 				if (Dt < CalcInterval)
 					continue;
 
-				double CurTime = DataEntries[i][DeviceTime];
 				double PrevTime = DataEntries[PrevIdx][DeviceTime];
+				double CurTime = DataEntries[i][DeviceTime];
 
-				double Power = Calculator.Calculate(GetSpeed(i), GetSpeed(PrevIdx), CurTime, PrevTime);
-				DataEntries[i].Calculated = new CalculatedEntry(Power);
+				double PrevSpeed = GetSpeed(PrevIdx);
+				double CurSpeed = GetSpeed(i);
+
+				double PowerRaw = Calculator.Calculate(CurSpeed, PrevSpeed, CurTime, PrevTime);
+				Filter.Update(new double[] { PowerRaw });
+
+				double Power = Filter.getState()[0];
+				double Torque = Calculator.CalcTorque(Power, DataEntries[i][RPM]);
+
+				DataEntries[i].Calculated = new CalculatedEntry(Power, PowerRaw, Torque);
 
 				PrevIdx = i;
 			}
 
+			// Fill last index
 			int LastIdx = DataEntries.Length - 1;
 			if (DataEntries[LastIdx].Calculated == null) {
-				/*int Next = FindPrevious(LastIdx, null);
-				int Prev = FindPrevious(Next, null);
-
-				DataEntries[LastIdx].Calculated = new CalculatedEntry(this, DataEntries[Prev], DataEntries[Next], DataEntries[LastIdx][DeviceTime]);*/
-
 				int Prev = FindPrevious(LastIdx, null);
 				DataEntries[LastIdx].Calculated = new CalculatedEntry(DataEntries[Prev].Calculated);
 			}
@@ -164,6 +198,15 @@ namespace ELM327_LogConverter {
 			return Calculator.CalcSpeed(2, Entry[RPM]);
 		}
 
+		public void SetSpeed(LogEntry Entry, double Spd) {
+			if (Speed.IsValid()) {
+				Entry[Speed] = Spd;
+				return;
+			}
+
+			Entry[RPM] = Calculator.CalcRPM(2, Spd);
+		}
+
 		LogIndex GetField(string Name) {
 			for (int i = 0; i < LogIndexFields.Length; i++) {
 				LogIndex Idx = (LogIndex)LogIndexFields[i].GetValue(this);
@@ -222,10 +265,19 @@ namespace ELM327_LogConverter {
 
 	public class CalculatedEntry {
 		public double Power;
+		public double PowerRaw;
 		public double Torque;
 
-		public CalculatedEntry(double Power) {
+		public CalculatedEntry() {
+			Power = 0;
+			PowerRaw = 0;
+			Torque = 0;
+		}
+
+		public CalculatedEntry(double Power, double PowerRaw, double Torque) {
 			this.Power = Power;
+			this.PowerRaw = PowerRaw;
+			this.Torque = Torque;
 		}
 
 		public CalculatedEntry(CalculatedEntry Copy) {

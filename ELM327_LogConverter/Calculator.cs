@@ -141,14 +141,18 @@ namespace ELM327_LogConverter {
 			return HP;
 		}
 
-		public static double CalcSpeed(int RunGear, double RPM, bool MPH = false) {
+		public static double CalcSpeed(int RunGear, double RPM) {
 			double TransmissionRatio = Gear[RunGear - 1];
 			double Speed = RPM * TireDiam / (1.0 * TransmissionRatio * Final * 336.0);
+			return Speed * 1.60934;
+		}
 
-			if (!MPH)
-				Speed *= 1.60934;
+		public static double CalcRPM(int RunGear, double Speed) {
+			Speed *= 0.62137273665;
 
-			return Speed;
+			double TransmissionRatio = Gear[RunGear - 1];
+			double RPM = (Speed * TransmissionRatio * Final * 336.0) / TireDiam;
+			return RPM;
 		}
 
 		public static double CalcTorque(double PowerHP, double RPM) {

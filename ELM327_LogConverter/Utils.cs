@@ -36,6 +36,12 @@ namespace ELM327_LogConverter {
 			}
 		}
 
+		public static double[] ApplyUKF(double[] Data) {
+			UKF Filter = new UKF();
+			Filter.Update(Data);
+			return Filter.getState();
+		}
+
 		public static int RoundToNearest(int Num, int Nearest, bool RoundDown = true) {
 			int Add = 0;
 

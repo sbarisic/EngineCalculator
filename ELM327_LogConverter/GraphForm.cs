@@ -11,6 +11,14 @@ using System.Windows.Forms.DataVisualization.Charting;
 
 namespace ELM327_LogConverter {
 	public partial class GraphForm : Form {
+		List<CustomSeries> AllSeries = new List<CustomSeries>();
+
+		int MinRPM = int.MaxValue;
+		int MaxRPM = int.MinValue;
+
+		double MinTime = double.MaxValue;
+		double MaxTime = double.MinValue;
+
 		public GraphForm() {
 			InitializeComponent();
 			chart1.Series.Clear();
@@ -20,49 +28,66 @@ namespace ELM327_LogConverter {
 		}
 
 		public void LoadGraph(LogData PowerRun, Color Clr, string Name) {
-			int MinRPM = 10000;
-			int MaxRPM = 0;
-
 			foreach (LogEntry Entry in PowerRun.DataEntries) {
 				if (Entry[PowerRun.RPM] < MinRPM)
 					MinRPM = (int)Entry[PowerRun.RPM];
 				if (Entry[PowerRun.RPM] > MaxRPM)
 					MaxRPM = (int)Entry[PowerRun.RPM];
 
-				//series.Points.AddXY(Entry.RPM, Entry.HP);
+				if (Entry[PowerRun.DeviceTime] < MinTime)
+					MinTime = Entry[PowerRun.DeviceTime];
+				if (Entry[PowerRun.DeviceTime] > MaxTime)
+					MaxTime = Entry[PowerRun.DeviceTime];
 			}
 
 			MinRPM = Utils.RoundToNearest(MinRPM, 500);
 			MaxRPM = Utils.RoundToNearest(MaxRPM, 500, false);
 
-			Series series = CreateSeries(Name, MinRPM, MaxRPM, Clr);
-			Series series_spd = null; // CreateSeries(Name + "_map", MinRPM, MaxRPM, Clr);
+			CustomSeries PowerSeries = CreateSeries(Name, MinRPM, MaxRPM, Clr, SeriesType.RPM);
+			CustomSeries PowerRawSeries = CreateSeries(Name + "_raw", MinRPM, MaxRPM, Color.Yellow, SeriesType.RPM);
+			CustomSeries TorqueSeries = null; //CreateSeries(Name + "_torque", MinRPM, MaxRPM, Clr, SeriesType.RPM);
+			CustomSeries SpeedSeries = CreateSeries(Name + "_spd", MinTime, MaxTime, Clr, SeriesType.Time);
 
 			//PrintGraph(PowerRun, series, series_spd, MinRPM, MaxRPM);
-			PrintGraph2(PowerRun, series);
+			PrintGraph2(PowerRun, PowerSeries, PowerRawSeries, TorqueSeries, SpeedSeries);
+
+			EnableSeries(SeriesType.RPM);
 		}
 
-		Series CreateSeries(string Name, int MinRPM, int MaxRPM, Color Clr) {
+		CustomSeries CreateSeries(string Name, double MinX, double MaxX, Color Clr, SeriesType SType) {
 			Series series = chart1.Series.Add(Name);
 			series.ChartType = SeriesChartType.Line; //SeriesChartType.Spline;
 			series.Color = Clr;
-			series.BorderWidth = 2;
-			series.SetCustomProperty("LineTension", "0.1");
+			series.BorderWidth = 1;
+			//series.SetCustomProperty("LineTension", "0.1");
 
 
-			chart1.ChartAreas[0].AxisX.Maximum = MaxRPM;
-			chart1.ChartAreas[0].AxisX.Minimum = MinRPM;
-			chart1.ChartAreas[0].AxisX.Interval = 200;
-			chart1.ChartAreas[0].AxisY.Interval = 10;
+			//chart1.ChartAreas[0].AxisX.Minimum = MinX;
+			//chart1.ChartAreas[0].AxisX.Maximum = MaxX;
+			//chart1.ChartAreas[0].AxisX.Interval = 200;
+			//chart1.ChartAreas[0].AxisY.Interval = 10;
 
-			return series;
+			CustomSeries S = new CustomSeries(series, SType);
+			AllSeries.Add(S);
+			return S;
 		}
 
-		static void PrintGraph2(LogData PowerRun, Series S) {
+		static void PrintGraph2(LogData PowerRun, CustomSeries PowerSeries, CustomSeries PowerRawSeries, CustomSeries TorqueSeries, CustomSeries SpeedSeries) {
 			foreach (LogEntry E in PowerRun.DataEntries) {
-				double Torque = Calculator.CalcTorque(E.Calculated.Power, E[PowerRun.RPM]);
+				double Time = E[PowerRun.DeviceTime];
+				double RPM = E[PowerRun.RPM];
 
-				S.Points.AddXY(E[PowerRun.RPM], E.Calculated.Power);
+				if (PowerSeries != null)
+					PowerSeries.Series.Points.AddXY(RPM, E.Calculated.Power);
+
+				if (PowerRawSeries != null)
+					PowerRawSeries.Series.Points.AddXY(RPM, E.Calculated.PowerRaw);
+
+				if (TorqueSeries != null)
+					TorqueSeries.Series.Points.AddXY(RPM, E.Calculated.Torque);
+
+				if (SpeedSeries != null)
+					SpeedSeries.Series.Points.AddXY(Time, PowerRun.GetSpeed(E));
 			}
 		}
 
@@ -123,5 +148,62 @@ namespace ELM327_LogConverter {
 					S2.Points.AddXY(RPM, RoadSpeed[i]);
 			}
 		}
+
+		private void rPMGraphToolStripMenuItem_Click(object sender, EventArgs e) {
+			RPMGraphBtn.Checked = true;
+			TimeGraphBtn.Checked = false;
+			EnableSeries(SeriesType.RPM);
+		}
+
+		private void timeGraphToolStripMenuItem_Click(object sender, EventArgs e) {
+			TimeGraphBtn.Checked = true;
+			RPMGraphBtn.Checked = false;
+			EnableSeries(SeriesType.Time);
+		}
+
+		void EnableSeries(SeriesType SType) {
+			foreach (CustomSeries S in AllSeries) {
+				S.Series.Enabled = S.SeriesType == SType;
+			}
+
+			double XMin = 0;
+			double XMax = 0;
+
+			switch (SType) {
+				case SeriesType.Time:
+					XMin = MinTime;
+					XMax = MaxTime;
+					break;
+
+				case SeriesType.RPM:
+					XMin = MinRPM;
+					XMax = MaxRPM;
+					break;
+
+				default:
+					throw new NotImplementedException();
+			}
+
+			chart1.ChartAreas[0].AxisX.Minimum = XMin;
+			chart1.ChartAreas[0].AxisX.Maximum = XMax;
+			//chart1.ChartAreas[0].AxisX.Interval = 200;
+			//chart1.ChartAreas[0].AxisY.Interval = 10;
+			chart1.ResetAutoValues();
+		}
+	}
+
+	class CustomSeries {
+		public Series Series;
+		public SeriesType SeriesType;
+
+		public CustomSeries(Series Series, SeriesType SeriesType) {
+			this.Series = Series;
+			this.SeriesType = SeriesType;
+		}
+	}
+
+	enum SeriesType {
+		Time,
+		RPM
 	}
 }
