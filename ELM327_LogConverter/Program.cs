@@ -19,7 +19,7 @@ namespace ELM327_LogConverter {
 		public static int SPD_Idx = -1;
 
 		static void Main(string[] args) {
-			Calculator.LoadCarData(File.ReadAllText("car_data.cfg"));
+			Calculator.LoadCarData(File.ReadAllText("car_data_a3_2013.cfg"));
 
 			Main2();
 			return;
@@ -58,7 +58,7 @@ namespace ELM327_LogConverter {
 			Color[] Colors = Utils.GetColors().ToArray();
 			int ColorIdx = 0;
 
-			foreach (var CSVFile in CSVFiles) {
+			/*foreach (var CSVFile in CSVFiles) {
 				LogData L = null;
 
 				try {
@@ -68,7 +68,15 @@ namespace ELM327_LogConverter {
 
 				if (L != null)
 					Frm.LoadGraph(L, Colors[ColorIdx++], Path.GetFileNameWithoutExtension(CSVFile));
-			}
+			}*/
+
+			Calculator.LoadCarData(File.ReadAllText("car_data.cfg"));
+			Frm.LoadGraph(new LogData("input.csv"), Color.Green, "1.4T Stock");
+			Frm.LoadGraph(new LogData("2020-09-12 19-48-04-fix.csv"), Color.Red, "1.4T Remap1");
+			Frm.LoadGraph(new LogData("2020-09-05 19-04-08.csv"), Color.Pink, "1.4T Remap2");
+
+			Calculator.LoadCarData(File.ReadAllText("car_data_a3_2013.cfg"));
+			Frm.LoadGraph(new LogData("audi.csv"), Color.Blue, "2.0 TDI");
 
 
 
