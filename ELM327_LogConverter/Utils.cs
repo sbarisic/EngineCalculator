@@ -37,9 +37,16 @@ namespace ELM327_LogConverter {
 		}
 
 		public static double[] ApplyUKF(double[] Data) {
+			double[] NewData = new double[Data.Length];
+
 			UKF Filter = new UKF();
-			Filter.Update(Data);
-			return Filter.getState();
+
+			for (int i = 0; i < Data.Length; i++) {
+				Filter.Update(new[] { Data[i] });
+				NewData[i] = Filter.getState()[0];
+			}
+
+			return NewData;
 		}
 
 		public static int RoundToNearest(int Num, int Nearest, bool RoundDown = true) {
@@ -64,6 +71,32 @@ namespace ELM327_LogConverter {
 
 		public static string ToString(double D) {
 			return string.Format("{0:0.000}", D);
+		}
+
+		public static double Distance(double A, double B) {
+			return Math.Abs(A - B);
+		}
+
+		public static IEnumerable<Color> GetColors() {
+			string[] ColorStrings = new[] {
+				"F2F3F4", "222222", "F3C300",
+				"875692", "F38400", "A1CAF1",
+				"BE0032", "C2B280", "848482",
+				"008856", "E68FAC", "0067A5",
+				"F99379", "604E97", "F6A600",
+				"B3446C", "DCD300", "882D17",
+				"8DB600", "654522", "E25822",
+				"2B3D26"
+			};
+
+			for (int i = 0; i < ColorStrings.Length; i++) {
+				byte[] ColorBytes = ToBytes(ColorStrings[i]);
+				yield return Color.FromArgb(ColorBytes[2], ColorBytes[1], ColorBytes[0]);
+			}
+		}
+
+		public static byte[] ToBytes(string HexString) {
+			return Enumerable.Range(0, HexString.Length).Where(x => x % 2 == 0).Select(x => Convert.ToByte(HexString.Substring(x, 2), 16)).ToArray();
 		}
 	}
 }

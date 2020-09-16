@@ -7,6 +7,8 @@ using System.Reflection;
 using System.IO;
 using System.Globalization;
 using System.Windows.Forms;
+using MathNet.Numerics;
+using System.Drawing;
 
 namespace ELM327_LogConverter {
 	public delegate double ParseFunc(string Str);
@@ -54,27 +56,62 @@ namespace ELM327_LogConverter {
 			int MinRPMIdx = -1;
 			double MaxRPM = -1;
 
+			const double DistThr = 0.1;
+			double MinDist = double.MaxValue;
+			double MaxDist = double.MinValue;
+
 			// Interpolate all data inbetween, find max RPM index
 			for (int i = 0; i < DataEntries.Length; i++) {
+				if (i > 0 && i < DataEntries.Length - 1) {
+					double CurTime = DataEntries[i][DeviceTime];
+					double PrevTime = DataEntries[FindPrevious(i, DeviceTime)][DeviceTime];
+					double NextTime = DataEntries[FindNext(i, DeviceTime)][DeviceTime];
+
+					//double Dist = Math.Min(Utils.Distance(CurTime, PrevTime), Utils.Distance(CurTime, NextTime));
+					double Dist = Utils.Distance(CurTime, PrevTime);
+
+					if (Dist < DistThr) {
+						DataEntries[i] = null;
+						continue;
+					}
+
+					MinDist = Math.Min(MinDist, Dist);
+					MaxDist = Math.Max(MaxDist, Dist);
+				}
+
+
 				foreach (var LogIdx in LogIndices) {
 					if (LogIdx == DeviceTime)
 						continue;
 
 					if (DataEntries[i][LogIdx] == -1) {
-						LogEntry Previous = DataEntries[FindPrevious(i, LogIdx)];
-						LogEntry Next = DataEntries[FindNext(i, LogIdx)];
+						int PreviousIdx = FindPrevious(i, LogIdx);
+						int NextIdx = FindNext(i, LogIdx);
+
+						if (PreviousIdx >= i || NextIdx <= i)
+							throw new Exception("Wat");
+
+						LogEntry Previous = DataEntries[PreviousIdx];
+						LogEntry Next = DataEntries[NextIdx];
 
 						DataEntries[i][LogIdx] = Utils.Lerp(Previous[DeviceTime], Previous[LogIdx], Next[DeviceTime], Next[LogIdx], DataEntries[i][DeviceTime]);
 					}
 				}
 
+
+			}
+
+			// Remove NULL entries
+			DataEntries = DataEntries.Where(E => E != null).ToArray();
+
+			// Find max and min RPM index
+			for (int i = 0; i < DataEntries.Length; i++) {
 				if (DataEntries[i][RPM] > MaxRPM) {
 					MaxRPMIdx = i;
 					MaxRPM = DataEntries[i][RPM];
 				}
 			}
 
-			// Find min RPM index
 			for (int i = MaxRPMIdx - 1; i >= 0; i--) {
 				if (DataEntries[i][RPM] < DataEntries[i + 1][RPM]) {
 					MinRPMIdx = i;
@@ -95,39 +132,40 @@ namespace ELM327_LogConverter {
 			for (int i = 0; i < DataEntries.Length; i++)
 				DataEntries[i][DeviceTime] = DataEntries[i][DeviceTime] - StartTime;
 
-			/*// Smooth out speed
-			double[] Speeds = DataEntries.Select(E => GetSpeed(E)).ToArray();
+			// Smooth out speed
+			/*double[] Speeds = DataEntries.Select(E => GetSpeed(E)).ToArray();
+			Speeds = Utils.ApplyUKF(Speeds);
 			for (int i = 0; i < DataEntries.Length; i++)
 				SetSpeed(DataEntries[i], Speeds[i]);*/
 
 			// Calculate all data
-			const double CalcInterval = 0.5;
-			int PrevIdx = 0;
+			const int CalcOffset = 1;
 			double Dt = 0;
 			DataEntries[0].Calculated = new CalculatedEntry();
 
-			UKF Filter = new UKF();
+			UKF Filter = new UKF(DataEntries.Length);
 
-			for (int i = 1; i < DataEntries.Length; i++) {
-				Dt = DataEntries[i][DeviceTime] - DataEntries[PrevIdx][DeviceTime];
-				if (Dt < CalcInterval)
-					continue;
+			for (int i = CalcOffset; i < DataEntries.Length - CalcOffset; i++) {
+				int PrevIdx = i - CalcOffset;
+				int NextIdx = i + CalcOffset;
 
 				double PrevTime = DataEntries[PrevIdx][DeviceTime];
 				double CurTime = DataEntries[i][DeviceTime];
+				double NextTime = DataEntries[NextIdx][DeviceTime];
+
+				Dt = Utils.Distance(PrevTime, NextTime);
 
 				double PrevSpeed = GetSpeed(PrevIdx);
 				double CurSpeed = GetSpeed(i);
+				double NextSpeed = GetSpeed(NextIdx);
 
-				double PowerRaw = Calculator.Calculate(CurSpeed, PrevSpeed, CurTime, PrevTime);
+				double PowerRaw = Calculator.Calculate(NextSpeed, PrevSpeed, NextTime, PrevTime);
 				Filter.Update(new double[] { PowerRaw });
 
 				double Power = Filter.getState()[0];
 				double Torque = Calculator.CalcTorque(Power, DataEntries[i][RPM]);
 
 				DataEntries[i].Calculated = new CalculatedEntry(Power, PowerRaw, Torque);
-
-				PrevIdx = i;
 			}
 
 			// Fill last index
@@ -146,6 +184,13 @@ namespace ELM327_LogConverter {
 					DataEntries[i].Calculated = new CalculatedEntry(this, Prev, Next, DataEntries[i][DeviceTime]);
 				}
 			}
+
+			// Smooth out power raw
+			double[] PowerRaws = DataEntries.Select(E => E.Calculated.PowerRaw).ToArray();
+			Utils.NoiseReduction(ref PowerRaws, 4);
+			for (int i = 0; i < PowerRaws.Length; i++) {
+				DataEntries[i].Calculated.Power = PowerRaws[i];
+			}
 		}
 
 		public void FindNearest(double RPM, out LogEntry Prev, out LogEntry Next) {
@@ -162,11 +207,13 @@ namespace ELM327_LogConverter {
 		int FindNext(int StartIdx, LogIndex Idx) {
 			for (int i = StartIdx + 1; i < DataEntries.Length; i++) {
 				if (Idx != null) {
-					if (DataEntries[i][Idx] != -1)
-						return i;
+					if (DataEntries[i] != null)
+						if (DataEntries[i][Idx] != -1)
+							return i;
 				} else {
-					if (DataEntries[i].Calculated != null)
-						return i;
+					if (DataEntries[i] != null)
+						if (DataEntries[i].Calculated != null)
+							return i;
 				}
 			}
 
@@ -176,11 +223,13 @@ namespace ELM327_LogConverter {
 		int FindPrevious(int StartIdx, LogIndex Idx) {
 			for (int i = StartIdx - 1; i >= 0; i--) {
 				if (Idx != null) {
-					if (DataEntries[i][Idx] != -1)
-						return i;
+					if (DataEntries[i] != null)
+						if (DataEntries[i][Idx] != -1)
+							return i;
 				} else {
-					if (DataEntries[i].Calculated != null)
-						return i;
+					if (DataEntries[i] != null)
+						if (DataEntries[i].Calculated != null)
+							return i;
 				}
 			}
 
@@ -287,10 +336,12 @@ namespace ELM327_LogConverter {
 
 		public CalculatedEntry(LogData Data, LogEntry Prev, LogEntry Next, double Time) {
 			Power = Utils.Lerp(Prev[Data.DeviceTime], Prev.Calculated.Power, Next[Data.DeviceTime], Next.Calculated.Power, Time);
+			PowerRaw = Utils.Lerp(Prev[Data.DeviceTime], Prev.Calculated.PowerRaw, Next[Data.DeviceTime], Next.Calculated.PowerRaw, Time);
+			Torque = Utils.Lerp(Prev[Data.DeviceTime], Prev.Calculated.Torque, Next[Data.DeviceTime], Next.Calculated.Torque, Time);
 		}
 
 		public override string ToString() {
-			return Utils.ToString(Power) + ", " + Utils.ToString(Torque);
+			return Utils.ToString(Power) + ", " + Utils.ToString(PowerRaw) + ", " + Utils.ToString(Torque);
 		}
 	}
 
@@ -324,7 +375,9 @@ namespace ELM327_LogConverter {
 		}
 
 		public override string ToString() {
-			return string.Join(", ", Data.Select(D => Utils.ToString(D)));
+			string Str = string.Join(", ", Data.Select(D => Utils.ToString(D)));
+			Str = string.Format("{0} ; {1}", Str, Calculated?.ToString() ?? "null");
+			return Str;
 		}
 	}
 

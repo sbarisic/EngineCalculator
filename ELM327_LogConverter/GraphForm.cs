@@ -22,6 +22,7 @@ namespace ELM327_LogConverter {
 		public GraphForm() {
 			InitializeComponent();
 			chart1.Series.Clear();
+			chart2.Series.Clear();
 		}
 
 		private void GraphForm_Load(object sender, EventArgs e) {
@@ -43,36 +44,34 @@ namespace ELM327_LogConverter {
 			MinRPM = Utils.RoundToNearest(MinRPM, 500);
 			MaxRPM = Utils.RoundToNearest(MaxRPM, 500, false);
 
-			CustomSeries PowerSeries = CreateSeries(Name, MinRPM, MaxRPM, Clr, SeriesType.RPM);
-			CustomSeries PowerRawSeries = CreateSeries(Name + "_raw", MinRPM, MaxRPM, Color.Yellow, SeriesType.RPM);
-			CustomSeries TorqueSeries = null; //CreateSeries(Name + "_torque", MinRPM, MaxRPM, Clr, SeriesType.RPM);
-			CustomSeries SpeedSeries = CreateSeries(Name + "_spd", MinTime, MaxTime, Clr, SeriesType.Time);
+			CustomSeries PowerSeries = CreateSeries(chart1, Name, MinRPM, MaxRPM, Clr, SeriesType.RPM);
+			CustomSeries PowerRawSeries = null; // CreateSeries(chart1, Name + "_raw", MinRPM, MaxRPM, Color.CadetBlue, SeriesType.RPM);
+			CustomSeries TorqueSeries = CreateSeries(chart2, Name, MinRPM, MaxRPM, Clr, SeriesType.RPM);
+
+			CustomSeries RPMSeries = null; // CreateSeries(chart1, Name + "_rpm", MinTime, MaxTime, Color.Red, SeriesType.Time);
+			CustomSeries SpeedSeries = CreateSeries(chart1, Name + "_spd", MinTime, MaxTime, Clr, SeriesType.Time);
 
 			//PrintGraph(PowerRun, series, series_spd, MinRPM, MaxRPM);
-			PrintGraph2(PowerRun, PowerSeries, PowerRawSeries, TorqueSeries, SpeedSeries);
+			PrintGraph2(PowerRun, PowerSeries, PowerRawSeries, TorqueSeries, SpeedSeries, RPMSeries);
 
 			EnableSeries(SeriesType.RPM);
 		}
 
-		CustomSeries CreateSeries(string Name, double MinX, double MaxX, Color Clr, SeriesType SType) {
-			Series series = chart1.Series.Add(Name);
+		CustomSeries CreateSeries(Chart chrt, string Name, double MinX, double MaxX, Color Clr, SeriesType SType) {
+			Series series = chrt.Series.Add(Name);
 			series.ChartType = SeriesChartType.Line; //SeriesChartType.Spline;
 			series.Color = Clr;
 			series.BorderWidth = 1;
+			series.MarkerStyle = MarkerStyle.Circle;
 			//series.SetCustomProperty("LineTension", "0.1");
 
-
-			//chart1.ChartAreas[0].AxisX.Minimum = MinX;
-			//chart1.ChartAreas[0].AxisX.Maximum = MaxX;
-			//chart1.ChartAreas[0].AxisX.Interval = 200;
-			//chart1.ChartAreas[0].AxisY.Interval = 10;
-
-			CustomSeries S = new CustomSeries(series, SType);
+			CustomSeries S = new CustomSeries(chrt, series, SType);
 			AllSeries.Add(S);
+
 			return S;
 		}
 
-		static void PrintGraph2(LogData PowerRun, CustomSeries PowerSeries, CustomSeries PowerRawSeries, CustomSeries TorqueSeries, CustomSeries SpeedSeries) {
+		static void PrintGraph2(LogData PowerRun, CustomSeries PowerSeries, CustomSeries PowerRawSeries, CustomSeries TorqueSeries, CustomSeries SpeedSeries, CustomSeries RPMSeries) {
 			foreach (LogEntry E in PowerRun.DataEntries) {
 				double Time = E[PowerRun.DeviceTime];
 				double RPM = E[PowerRun.RPM];
@@ -88,6 +87,9 @@ namespace ELM327_LogConverter {
 
 				if (SpeedSeries != null)
 					SpeedSeries.Series.Points.AddXY(Time, PowerRun.GetSpeed(E));
+
+				if (RPMSeries != null)
+					RPMSeries.Series.Points.AddXY(Time, RPM);
 			}
 		}
 
@@ -168,11 +170,13 @@ namespace ELM327_LogConverter {
 
 			double XMin = 0;
 			double XMax = 0;
+			double XInterval = 0;
 
 			switch (SType) {
 				case SeriesType.Time:
 					XMin = MinTime;
 					XMax = MaxTime;
+					XInterval = 1;
 					break;
 
 				case SeriesType.RPM:
@@ -184,19 +188,26 @@ namespace ELM327_LogConverter {
 					throw new NotImplementedException();
 			}
 
-			chart1.ChartAreas[0].AxisX.Minimum = XMin;
-			chart1.ChartAreas[0].AxisX.Maximum = XMax;
-			//chart1.ChartAreas[0].AxisX.Interval = 200;
-			//chart1.ChartAreas[0].AxisY.Interval = 10;
-			chart1.ResetAutoValues();
+			SetChart(chart1, XMin, XMax, XInterval, 0);
+			SetChart(chart2, XMin, XMax, XInterval, 20);
+		}
+
+		void SetChart(Chart Chrt, double XMin, double XMax, double XInterval, double YInterval) {
+			Chrt.ChartAreas[0].AxisX.Minimum = XMin;
+			Chrt.ChartAreas[0].AxisX.Maximum = XMax;
+			Chrt.ChartAreas[0].AxisX.Interval = XInterval;
+			Chrt.ChartAreas[0].AxisY.Interval = YInterval;
+			Chrt.ResetAutoValues();
 		}
 	}
 
 	class CustomSeries {
+		public Chart Chart;
 		public Series Series;
 		public SeriesType SeriesType;
 
-		public CustomSeries(Series Series, SeriesType SeriesType) {
+		public CustomSeries(Chart Chart, Series Series, SeriesType SeriesType) {
+			this.Chart = Chart;
 			this.Series = Series;
 			this.SeriesType = SeriesType;
 		}
