@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,6 +22,11 @@ namespace ELM327_LogConverter {
 
 		public GraphForm() {
 			InitializeComponent();
+			ClearSeries();
+		}
+
+		void ClearSeries() {
+			AllSeries.Clear();
 			chart1.Series.Clear();
 			chart2.Series.Clear();
 		}
@@ -198,6 +204,49 @@ namespace ELM327_LogConverter {
 			Chrt.ChartAreas[0].AxisX.Interval = XInterval;
 			Chrt.ChartAreas[0].AxisY.Interval = YInterval;
 			Chrt.ResetAutoValues();
+		}
+
+		private void convertCSVToolStripMenuItem_Click(object sender, EventArgs e) {
+			openFile.Filter = "CSV Files|*.csv";
+			openFile.InitialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "files");
+			DialogResult Diag = openFile.ShowDialog();
+
+			if (Diag == DialogResult.OK) {
+				foreach (var LogFile in openFile.FileNames) {
+					string DirName = Path.GetDirectoryName(LogFile);
+					string FileName = Path.GetFileNameWithoutExtension(LogFile);
+
+					LogData Log = new LogData(LogFile);
+					string ConvertedLogSrc = Log.Serialize();
+
+					File.WriteAllText(Path.Combine(DirName, FileName + ".dynolog"), ConvertedLogSrc);
+				}
+
+				MessageBox.Show("Files successfully converted", "Success", MessageBoxButtons.OK);
+			}
+		}
+
+		private void openDynoLogToolStripMenuItem_Click(object sender, EventArgs e) {
+			LogData[] Files = OpenDynoLogFiles().ToArray();
+
+			foreach (LogData Log in Files) {
+				Log.Calculate();
+				LoadGraph(Log, Color.Red, Log.FileName);
+			}
+		}
+
+		IEnumerable<LogData> OpenDynoLogFiles() {
+			openFile.Filter = "DynoLog Files|*.dynolog";
+			openFile.InitialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "files");
+			DialogResult Diag = openFile.ShowDialog();
+
+			if (Diag == DialogResult.OK) {
+				foreach (var LogFile in openFile.FileNames) {
+					LogData Log = new LogData();
+					Log.Deserialize(LogFile);
+					yield return Log;
+				}
+			}
 		}
 	}
 

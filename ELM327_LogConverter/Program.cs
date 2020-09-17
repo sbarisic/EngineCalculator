@@ -18,6 +18,7 @@ namespace ELM327_LogConverter {
 		public static int MAP_Idx = -1;
 		public static int SPD_Idx = -1;
 
+		[STAThread]
 		static void Main(string[] args) {
 			Calculator.LoadCarData(File.ReadAllText("car_data_a3_2013.cfg"));
 
@@ -46,40 +47,18 @@ namespace ELM327_LogConverter {
 		static void Main2() {
 			GraphForm Frm = new GraphForm();
 
-			/*LogData Log = new LogData("2020-09-12 19-48-04-fix.csv");
-			LogData Log2 = new LogData("2020-09-05 19-04-08.csv");
-			LogData Log3 = new LogData("input.csv");
-
-			Frm.LoadGraph(Log, Color.Red, "Remap 2");
-			Frm.LoadGraph(Log2, Color.Blue, "Remap 1");
-			Frm.LoadGraph(Log3, Color.Green, "Stock");*/
-
-			string[] CSVFiles = Directory.GetFiles(".", "*.csv");
+			/*string[] CSVFiles = Directory.GetFiles(".", "*.csv");
 			Color[] Colors = Utils.GetColors().ToArray();
 			int ColorIdx = 0;
 
-			/*foreach (var CSVFile in CSVFiles) {
-				LogData L = null;
-
-				try {
-					L = new LogData(CSVFile);
-				} catch (Exception) {
-				}
-
-				if (L != null)
-					Frm.LoadGraph(L, Colors[ColorIdx++], Path.GetFileNameWithoutExtension(CSVFile));
-			}*/
-
 			Calculator.LoadCarData(File.ReadAllText("car_data.cfg"));
-			Frm.LoadGraph(new LogData("input.csv"), Color.Green, "1.4T Stock");
-			Frm.LoadGraph(new LogData("2020-09-12 19-48-04-fix.csv"), Color.Red, "1.4T Remap1");
-			Frm.LoadGraph(new LogData("2020-09-05 19-04-08.csv"), Color.Pink, "1.4T Remap2");
+
+			Frm.LoadGraph(new LogData("files/14T_Stock.csv"), Colors[ColorIdx++], "1.4T Stock");
+			Frm.LoadGraph(new LogData("files/2020-09-12 19-48-04-14T_Remap2.csv"), Colors[ColorIdx++], "1.4T Remap2");
 
 			Calculator.LoadCarData(File.ReadAllText("car_data_a3_2013.cfg"));
-			Frm.LoadGraph(new LogData("audi.csv"), Color.Blue, "2.0 TDI");
-
-
-
+			Frm.LoadGraph(new LogData("files/2020-09-16 22-01-14-20TDI_Run1.csv"), Colors[ColorIdx++], "2.0 TDI");*/
+			
 			Application.Run(Frm);
 		}
 

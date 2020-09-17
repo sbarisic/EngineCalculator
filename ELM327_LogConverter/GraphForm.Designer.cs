@@ -32,11 +32,14 @@
 			this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
 			this.menuStrip1 = new System.Windows.Forms.MenuStrip();
 			this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.convertCSVToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.RPMGraphBtn = new System.Windows.Forms.ToolStripMenuItem();
 			this.TimeGraphBtn = new System.Windows.Forms.ToolStripMenuItem();
 			this.chart2 = new System.Windows.Forms.DataVisualization.Charting.Chart();
 			this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+			this.openFile = new System.Windows.Forms.OpenFileDialog();
+			this.openDynoLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
 			this.menuStrip1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.chart2)).BeginInit();
@@ -76,9 +79,19 @@
 			// 
 			// fileToolStripMenuItem
 			// 
+			this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.openDynoLogToolStripMenuItem,
+            this.convertCSVToolStripMenuItem});
 			this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
 			this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
 			this.fileToolStripMenuItem.Text = "File";
+			// 
+			// convertCSVToolStripMenuItem
+			// 
+			this.convertCSVToolStripMenuItem.Name = "convertCSVToolStripMenuItem";
+			this.convertCSVToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+			this.convertCSVToolStripMenuItem.Text = "Convert CSV";
+			this.convertCSVToolStripMenuItem.Click += new System.EventHandler(this.convertCSVToolStripMenuItem_Click);
 			// 
 			// settingsToolStripMenuItem
 			// 
@@ -92,14 +105,14 @@
 			// RPMGraphBtn
 			// 
 			this.RPMGraphBtn.Name = "RPMGraphBtn";
-			this.RPMGraphBtn.Size = new System.Drawing.Size(180, 22);
+			this.RPMGraphBtn.Size = new System.Drawing.Size(135, 22);
 			this.RPMGraphBtn.Text = "RPM Graph";
 			this.RPMGraphBtn.Click += new System.EventHandler(this.rPMGraphToolStripMenuItem_Click);
 			// 
 			// TimeGraphBtn
 			// 
 			this.TimeGraphBtn.Name = "TimeGraphBtn";
-			this.TimeGraphBtn.Size = new System.Drawing.Size(180, 22);
+			this.TimeGraphBtn.Size = new System.Drawing.Size(135, 22);
 			this.TimeGraphBtn.Text = "Time Graph";
 			this.TimeGraphBtn.Click += new System.EventHandler(this.timeGraphToolStripMenuItem_Click);
 			// 
@@ -140,6 +153,17 @@
 			this.splitContainer1.SplitterDistance = 415;
 			this.splitContainer1.TabIndex = 3;
 			// 
+			// openFile
+			// 
+			this.openFile.Filter = "CSV Files|*.csv";
+			// 
+			// openDynoLogToolStripMenuItem
+			// 
+			this.openDynoLogToolStripMenuItem.Name = "openDynoLogToolStripMenuItem";
+			this.openDynoLogToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+			this.openDynoLogToolStripMenuItem.Text = "Open DynoLog";
+			this.openDynoLogToolStripMenuItem.Click += new System.EventHandler(this.openDynoLogToolStripMenuItem_Click);
+			// 
 			// GraphForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -175,5 +199,8 @@
 		private System.Windows.Forms.ToolStripMenuItem TimeGraphBtn;
 		private System.Windows.Forms.DataVisualization.Charting.Chart chart2;
 		private System.Windows.Forms.SplitContainer splitContainer1;
+		private System.Windows.Forms.ToolStripMenuItem convertCSVToolStripMenuItem;
+		private System.Windows.Forms.OpenFileDialog openFile;
+		private System.Windows.Forms.ToolStripMenuItem openDynoLogToolStripMenuItem;
 	}
 }

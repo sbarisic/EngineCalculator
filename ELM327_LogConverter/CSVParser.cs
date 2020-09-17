@@ -27,6 +27,9 @@ namespace ELM327_LogConverter {
 		FieldInfo[] LogIndexFields;
 		LogIndex[] LogIndices;
 
+		public string FileName;
+		public string CalculatorFile;
+
 		public LogData() {
 			LogIndexFields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).Where(F => F.FieldType == typeof(LogIndex)).ToArray();
 			LogIndices = LogIndexFields.Select(F => (LogIndex)F.GetValue(this)).ToArray();
@@ -52,15 +55,11 @@ namespace ELM327_LogConverter {
 				}
 			}
 
-			int MaxRPMIdx = -1;
-			int MinRPMIdx = -1;
-			double MaxRPM = -1;
-
-			const double DistThr = 0.1;
+			const double DistThr = 0.0;
 			double MinDist = double.MaxValue;
 			double MaxDist = double.MinValue;
 
-			// Interpolate all data inbetween, find max RPM index
+			// Interpolate all data inbetween
 			for (int i = 0; i < DataEntries.Length; i++) {
 				if (i > 0 && i < DataEntries.Length - 1) {
 					double CurTime = DataEntries[i][DeviceTime];
@@ -104,7 +103,15 @@ namespace ELM327_LogConverter {
 			// Remove NULL entries
 			DataEntries = DataEntries.Where(E => E != null).ToArray();
 
+			Calculate();
+		}
+
+		public void Calculate() {
 			// Find max and min RPM index
+			int MaxRPMIdx = -1;
+			int MinRPMIdx = -1;
+			double MaxRPM = -1;
+
 			for (int i = 0; i < DataEntries.Length; i++) {
 				if (DataEntries[i][RPM] > MaxRPM) {
 					MaxRPMIdx = i;
@@ -310,6 +317,43 @@ namespace ELM327_LogConverter {
 
 			return SB.ToString();
 		}
+
+		public string Serialize() {
+			StringBuilder Serialized = new StringBuilder();
+
+			foreach (LogIndex Idx in LogIndices)
+				Serialized.AppendLine(Idx.Serialize());
+
+			foreach (LogEntry Entry in DataEntries)
+				Serialized.AppendLine(Entry.Serialize());
+
+			return Serialized.ToString();
+		}
+
+		public void Deserialize(string SourceFile) {
+			FileName = Path.GetFileNameWithoutExtension(SourceFile);
+			string[] Source = File.ReadAllLines(SourceFile);
+
+			List<LogEntry> DataEntriesList = new List<LogEntry>();
+
+			for (int i = 0; i < Source.Length; i++) {
+				string SourceLine = Source[i];
+
+				if (SourceLine.StartsWith("#!")) {
+					LogIndex.Deserialize(SourceLine, out int Index, out string Name);
+					LogIndex Idx = LogIndices.Where(I => I.Name == Name).FirstOrDefault();
+					Idx.Index = Index;
+				} else if (SourceLine.StartsWith("#?")) {
+				
+				} else {
+					LogEntry Entry = new LogEntry();
+					Entry.Deserialize(SourceLine);
+					DataEntriesList.Add(Entry);
+				}
+			}
+
+			DataEntries = DataEntriesList.ToArray();
+		}
 	}
 
 	public class CalculatedEntry {
@@ -370,8 +414,19 @@ namespace ELM327_LogConverter {
 			}
 		}
 
+		public LogEntry() {
+		}
+
 		public LogEntry(int Len) {
 			Data = new double[Len];
+		}
+
+		public string Serialize() {
+			return string.Join(";", Data.Select(Utils.Serialize));
+		}
+
+		public void Deserialize(string Line) {
+			Data = Line.Split(';').Select(Utils.DeserializeDouble).ToArray();
 		}
 
 		public override string ToString() {
@@ -400,6 +455,19 @@ namespace ELM327_LogConverter {
 				return false;
 
 			return true;
+		}
+
+		public string Serialize() {
+			return string.Format("#! {0} {1}", Index, Name);
+		}
+
+		public static void Deserialize(string Line, out int Index, out string Name) {
+			Line = Line.Substring(3, Line.Length - 3);
+			int IdxOfSpace = Line.IndexOf(' ');
+			string IndexStr = Line.Substring(0, IdxOfSpace);
+
+			Index = int.Parse(IndexStr);
+			Name = Line.Substring(IdxOfSpace + 1, Line.Length - IdxOfSpace - 1);
 		}
 
 		public static double ParseDate(string Str) {

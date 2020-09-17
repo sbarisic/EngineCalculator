@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -73,26 +74,28 @@ namespace ELM327_LogConverter {
 			return string.Format("{0:0.000}", D);
 		}
 
+		public static string Serialize(double D) {
+			return D.ToString(CultureInfo.InvariantCulture);
+		}
+
+		public static double DeserializeDouble(string Str) {
+			return double.Parse(Str, CultureInfo.InvariantCulture);
+		}
+
 		public static double Distance(double A, double B) {
 			return Math.Abs(A - B);
 		}
 
 		public static IEnumerable<Color> GetColors() {
-			string[] ColorStrings = new[] {
-				"F2F3F4", "222222", "F3C300",
-				"875692", "F38400", "A1CAF1",
-				"BE0032", "C2B280", "848482",
-				"008856", "E68FAC", "0067A5",
-				"F99379", "604E97", "F6A600",
-				"B3446C", "DCD300", "882D17",
-				"8DB600", "654522", "E25822",
-				"2B3D26"
-			};
-
-			for (int i = 0; i < ColorStrings.Length; i++) {
-				byte[] ColorBytes = ToBytes(ColorStrings[i]);
-				yield return Color.FromArgb(ColorBytes[2], ColorBytes[1], ColorBytes[0]);
-			}
+			yield return Color.FromArgb(255, 0, 0);
+			yield return Color.FromArgb(0, 225, 255);
+			yield return Color.FromArgb(0, 47, 255);
+			yield return Color.FromArgb(0, 255, 64);
+			yield return Color.FromArgb(246, 255, 0);
+			yield return Color.FromArgb(200, 0, 255);
+			yield return Color.FromArgb(255, 0, 174);
+			yield return Color.FromArgb(255, 132, 0);
+			yield return Color.FromArgb(0, 255, 187);
 		}
 
 		public static byte[] ToBytes(string HexString) {
