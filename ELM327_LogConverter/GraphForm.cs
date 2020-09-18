@@ -188,13 +188,14 @@ namespace ELM327_LogConverter {
 				case SeriesType.RPM:
 					XMin = MinRPM;
 					XMax = MaxRPM;
+
 					break;
 
 				default:
 					throw new NotImplementedException();
 			}
 
-			SetChart(chart1, XMin, XMax, XInterval, 0);
+			SetChart(chart1, XMin, XMax, XInterval, 20);
 			SetChart(chart2, XMin, XMax, XInterval, 20);
 		}
 
@@ -207,6 +208,9 @@ namespace ELM327_LogConverter {
 		}
 
 		private void convertCSVToolStripMenuItem_Click(object sender, EventArgs e) {
+			ConvertDialog Cvrt = new ConvertDialog();
+			Cvrt.ShowDialog();
+
 			openFile.Filter = "CSV Files|*.csv";
 			openFile.InitialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "files");
 			DialogResult Diag = openFile.ShowDialog();
@@ -217,6 +221,9 @@ namespace ELM327_LogConverter {
 					string FileName = Path.GetFileNameWithoutExtension(LogFile);
 
 					LogData Log = new LogData(LogFile);
+					Log.Gear = Cvrt.Gear;
+					Log.Weight = Cvrt.Weight;
+
 					string ConvertedLogSrc = Log.Serialize();
 
 					File.WriteAllText(Path.Combine(DirName, FileName + ".dynolog"), ConvertedLogSrc);
@@ -231,11 +238,14 @@ namespace ELM327_LogConverter {
 
 			foreach (LogData Log in Files) {
 				Log.Calculate();
-				LoadGraph(Log, Color.Red, Log.FileName);
+				LoadGraph(Log, SelectColor(), Log.FileName);
 			}
 		}
 
 		IEnumerable<LogData> OpenDynoLogFiles() {
+			if (!LoadCarDialog())
+				yield break;
+
 			openFile.Filter = "DynoLog Files|*.dynolog";
 			openFile.InitialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "files");
 			DialogResult Diag = openFile.ShowDialog();
@@ -247,6 +257,38 @@ namespace ELM327_LogConverter {
 					yield return Log;
 				}
 			}
+		}
+
+		bool LoadCarDialog() {
+			openFile.Filter = "CarCfg Files|*.cfg";
+			openFile.InitialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "cars");
+			DialogResult Diag = openFile.ShowDialog();
+
+			if (Diag == DialogResult.OK) {
+				foreach (var LogFile in openFile.FileNames) {
+					Calculator.LoadCarData(File.ReadAllText(LogFile));
+				}
+
+				return true;
+			}
+
+			return false;
+		}
+
+		private void ClearLogsToolStripMenuItem_Click(object sender, EventArgs e) {
+			ClearSeries();
+		}
+
+		Color SelectColor() {
+			ColorDialog MyDialog = new ColorDialog();
+			MyDialog.AllowFullOpen = true;
+			MyDialog.Color = Color.Red;
+
+			// Update the text box color if the user clicks OK 
+			if (MyDialog.ShowDialog() == DialogResult.OK)
+				return MyDialog.Color;
+
+			return Color.Red;
 		}
 	}
 

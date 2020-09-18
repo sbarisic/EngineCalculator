@@ -47,6 +47,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Calculator.cs" />
+    <Compile Include="ConvertDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ConvertDialog.Designer.cs">
+      <DependentUpon>ConvertDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="CSVParser.cs" />
     <Compile Include="TimeGraphForm.cs">
       <SubType>Form</SubType>
@@ -68,10 +74,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="car_data_a3_2013.cfg">
+    <None Include="cars\car_data_a3_2013.cfg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="car_data.cfg">
+    <None Include="cars\car_data.cfg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="files\2020-08-16 20-39-50.csv">
@@ -100,6 +106,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="ConvertDialog.resx">
+      <DependentUpon>ConvertDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TimeGraphForm.resx">
       <DependentUpon>TimeGraphForm.cs</DependentUpon>
     </EmbeddedResource>

@@ -20,7 +20,7 @@ namespace ELM327_LogConverter {
 
 		[STAThread]
 		static void Main(string[] args) {
-			Calculator.LoadCarData(File.ReadAllText("car_data_a3_2013.cfg"));
+			//Calculator.LoadCarData(File.ReadAllText("car_data_a3_2013.cfg"));
 
 			Main2();
 			return;

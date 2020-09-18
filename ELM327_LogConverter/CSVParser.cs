@@ -30,6 +30,9 @@ namespace ELM327_LogConverter {
 		public string FileName;
 		public string CalculatorFile;
 
+		public int Gear = 2;
+		public int Weight = 70;
+
 		public LogData() {
 			LogIndexFields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).Where(F => F.FieldType == typeof(LogIndex)).ToArray();
 			LogIndices = LogIndexFields.Select(F => (LogIndex)F.GetValue(this)).ToArray();
@@ -103,7 +106,7 @@ namespace ELM327_LogConverter {
 			// Remove NULL entries
 			DataEntries = DataEntries.Where(E => E != null).ToArray();
 
-			Calculate();
+			//Calculate();
 		}
 
 		public void Calculate() {
@@ -170,7 +173,7 @@ namespace ELM327_LogConverter {
 				Filter.Update(new double[] { PowerRaw });
 
 				double Power = Filter.getState()[0];
-				double Torque = Calculator.CalcTorque(Power, DataEntries[i][RPM]);
+				double Torque = Calculator.CalcTorque(Power * 1.2, DataEntries[i][RPM]);
 
 				DataEntries[i].Calculated = new CalculatedEntry(Power, PowerRaw, Torque);
 			}
@@ -324,6 +327,9 @@ namespace ELM327_LogConverter {
 			foreach (LogIndex Idx in LogIndices)
 				Serialized.AppendLine(Idx.Serialize());
 
+			Serialized.AppendLine("#gear " + Gear);
+			Serialized.AppendLine("#weight " + Weight);
+
 			foreach (LogEntry Entry in DataEntries)
 				Serialized.AppendLine(Entry.Serialize());
 
@@ -344,7 +350,11 @@ namespace ELM327_LogConverter {
 					LogIndex Idx = LogIndices.Where(I => I.Name == Name).FirstOrDefault();
 					Idx.Index = Index;
 				} else if (SourceLine.StartsWith("#?")) {
-				
+
+				} else if (SourceLine.StartsWith("#gear")) {
+					Gear = int.Parse(SourceLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1]);
+				} else if (SourceLine.StartsWith("#weight")) {
+					Weight = int.Parse(SourceLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1]);
 				} else {
 					LogEntry Entry = new LogEntry();
 					Entry.Deserialize(SourceLine);
