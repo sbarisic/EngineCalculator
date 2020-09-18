@@ -80,33 +80,17 @@
     <None Include="cars\car_data.cfg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="files\2020-08-16 20-39-50.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="files\2020-08-16 20-44-38.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="files\2020-08-16 21-49-28.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="files\2020-09-05 19-04-08.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="files\2020-09-12 19-48-04-14T_Remap2.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="files\2020-09-12 19-48-04.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="files\2020-09-16 22-01-14-20TDI_Run1.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="files\2020-08-16 20-39-50.csv" />
+    <None Include="files\2020-08-16 20-44-38.csv" />
+    <None Include="files\2020-08-16 21-49-28.csv" />
+    <None Include="files\2020-09-05 19-04-08.csv" />
+    <None Include="files\2020-09-12 19-48-04-14T_Remap2.csv" />
+    <None Include="files\2020-09-12 19-48-04.csv" />
+    <None Include="files\2020-09-16 22-01-14-20TDI_Run1.csv" />
     <None Include="files\14T_Stock.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="files\2020-09-18 18-13-55_14T.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="files\2020-09-18 18-13-55_14T.csv" />
     <None Include="files\2020-09-18 18-17-41_14T.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

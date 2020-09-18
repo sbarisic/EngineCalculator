@@ -115,6 +115,8 @@ namespace ELM327_LogConverter {
 			int MinRPMIdx = -1;
 			double MaxRPM = -1;
 
+			Calculator.Weight2 = Weight;
+
 			for (int i = 0; i < DataEntries.Length; i++) {
 				if (DataEntries[i][RPM] > MaxRPM) {
 					MaxRPMIdx = i;
@@ -254,7 +256,7 @@ namespace ELM327_LogConverter {
 			if (Speed.IsValid())
 				return Entry[Speed];
 
-			return Calculator.CalcSpeed(2, Entry[RPM]);
+			return Calculator.CalcSpeed(Gear, Entry[RPM]);
 		}
 
 		public void SetSpeed(LogEntry Entry, double Spd) {
