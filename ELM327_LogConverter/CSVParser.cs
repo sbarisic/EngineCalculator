@@ -34,7 +34,7 @@ namespace ELM327_LogConverter {
 		public int Weight = 70;
 
 		public LogData() {
-			LogIndexFields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).Where(F => F.FieldType == typeof(LogIndex)).ToArray();
+			LogIndexFields = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(F => F.FieldType == typeof(LogIndex)).ToArray();
 			LogIndices = LogIndexFields.Select(F => (LogIndex)F.GetValue(this)).ToArray();
 		}
 

@@ -246,15 +246,24 @@ namespace ELM327_LogConverter {
 			if (!LoadCarDialog())
 				yield break;
 
-			openFile.Filter = "DynoLog Files|*.dynolog";
+			openFile.Filter = "DynoLog Files|*.dynolog|CSV Files|*.csv";
 			openFile.InitialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "files");
+			openFile.Multiselect = true;
 			DialogResult Diag = openFile.ShowDialog();
 
 			if (Diag == DialogResult.OK) {
 				foreach (var LogFile in openFile.FileNames) {
-					LogData Log = new LogData();
-					Log.Deserialize(LogFile);
-					yield return Log;
+					bool DynologFile = Path.GetExtension(LogFile).ToLower() == ".dynolog";
+
+					if (DynologFile) {
+						LogData Log = new LogData();
+						Log.Deserialize(LogFile);
+						yield return Log;
+					} else {
+						LogData Log = new LogData(LogFile);
+						yield return Log;
+					}
+
 				}
 			}
 		}
