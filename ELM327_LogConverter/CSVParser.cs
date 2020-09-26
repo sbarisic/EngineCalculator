@@ -114,6 +114,7 @@ namespace ELM327_LogConverter {
 			int MaxRPMIdx = -1;
 			int MinRPMIdx = -1;
 			double MaxRPM = -1;
+			double MinRPM = -1;
 
 			Calculator.Weight2 = Weight;
 
@@ -127,6 +128,7 @@ namespace ELM327_LogConverter {
 			for (int i = MaxRPMIdx - 1; i >= 0; i--) {
 				if (DataEntries[i][RPM] < DataEntries[i + 1][RPM]) {
 					MinRPMIdx = i;
+					MinRPM = DataEntries[i][RPM];
 					continue;
 				}
 
@@ -157,6 +159,9 @@ namespace ELM327_LogConverter {
 
 			UKF Filter = new UKF(DataEntries.Length);
 
+			double MaxPower = 0;
+			double MaxTorque = 0;
+
 			for (int i = CalcOffset; i < DataEntries.Length - CalcOffset; i++) {
 				int PrevIdx = i - CalcOffset;
 				int NextIdx = i + CalcOffset;
@@ -174,11 +179,21 @@ namespace ELM327_LogConverter {
 				double PowerRaw = Calculator.Calculate(NextSpeed, PrevSpeed, NextTime, PrevTime);
 				Filter.Update(new double[] { PowerRaw });
 
-				double Power = Filter.getState()[0];
+				//double Power = Filter.getState()[0];
+				double Power = PowerRaw;
+
 				double Torque = Calculator.CalcTorque(Power * 1.2, DataEntries[i][RPM]);
+
+				if (Power > MaxPower)
+					MaxPower = Power;
+
+				if (Torque > MaxTorque)
+					MaxTorque = Torque;
 
 				DataEntries[i].Calculated = new CalculatedEntry(Power, PowerRaw, Torque);
 			}
+
+			Console.WriteLine("{0} whp; {1} Nm", MaxPower, MaxTorque);
 
 			// Fill last index
 			int LastIdx = DataEntries.Length - 1;
@@ -199,7 +214,7 @@ namespace ELM327_LogConverter {
 
 			// Smooth out power raw
 			double[] PowerRaws = DataEntries.Select(E => E.Calculated.PowerRaw).ToArray();
-			Utils.NoiseReduction(ref PowerRaws, 4);
+			Utils.NoiseReduction(ref PowerRaws, 1); // 4
 			for (int i = 0; i < PowerRaws.Length; i++) {
 				DataEntries[i].Calculated.Power = PowerRaws[i];
 			}
