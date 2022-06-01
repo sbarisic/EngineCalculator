@@ -14,10 +14,10 @@ namespace ELM327_LogConverter {
 	public delegate double ParseFunc(string Str);
 
 	public class LogData {
-		public LogIndex DeviceTime = new LogIndex("Device time", LogIndex.ParseDate);
-		public LogIndex RPM = new LogIndex("Engine RPM (rpm)", LogIndex.ParseNum);
-		LogIndex Speed = new LogIndex("Vehicle speed (km/h)", LogIndex.ParseNum);
-		LogIndex MAP = new LogIndex("Intake manifold absolute pressure (kPa)", LogIndex.ParseNum);
+		public LogIndex DeviceTime = new LogIndex(new string[] { "Device time", "Offset" }, LogIndex.ParseDate);
+		public LogIndex RPM = new LogIndex(new string[] { "Engine RPM (rpm)", "Engine RPM (SAE)" }, LogIndex.ParseNum);
+		LogIndex Speed = new LogIndex(new string[] { "Vehicle speed (km/h)", "Vehicle Speed (SAE)" }, LogIndex.ParseNum);
+		LogIndex MAP = new LogIndex(new string[] { "Intake manifold absolute pressure (kPa)", "Intake Manifold Absolute Pressure (SAE)" }, LogIndex.ParseNum);
 
 		public LogEntry[] DataEntries;
 		//public CalculatedEntry[] CalculatedEntries;
@@ -43,7 +43,13 @@ namespace ELM327_LogConverter {
 		}
 
 		void Parse(string CSVFile) {
-			DataEntries = ParseEntries(CSVFile).OrderBy(E => E[DeviceTime]).ToArray();
+			string CSVFileRaw = File.ReadAllText(CSVFile);
+
+			if (CSVFileRaw.Contains("HP Tuners CSV Log File")) {
+				DataEntries = ParseEntriesHPT(CSVFile).OrderBy(E => E[DeviceTime]).ToArray();
+			} else {
+				DataEntries = ParseEntries(CSVFile).OrderBy(E => E[DeviceTime]).ToArray();
+			}
 
 			// Fix first entry and last entry to contain all valid data
 			foreach (var Idx in LogIndices) {
@@ -114,7 +120,7 @@ namespace ELM327_LogConverter {
 			int MaxRPMIdx = -1;
 			int MinRPMIdx = -1;
 			double MaxRPM = -1;
-			double MinRPM = -1;
+			double MinRPM = 999999;
 
 			Calculator.Weight2 = Weight;
 
@@ -125,7 +131,15 @@ namespace ELM327_LogConverter {
 				}
 			}
 
-			for (int i = MaxRPMIdx - 1; i >= 0; i--) {
+
+			for (int i = 0; i < DataEntries.Length; i++) {
+				if (DataEntries[i][RPM] < MinRPM) {
+					MinRPMIdx = i;
+					MinRPM = DataEntries[i][RPM];
+				}
+			}
+
+			/*for (int i = MaxRPMIdx - 1; i >= 0; i--) {
 				if (DataEntries[i][RPM] < DataEntries[i + 1][RPM]) {
 					MinRPMIdx = i;
 					MinRPM = DataEntries[i][RPM];
@@ -133,7 +147,7 @@ namespace ELM327_LogConverter {
 				}
 
 				break;
-			}
+			}*/
 
 			if (MaxRPMIdx == -1 || MinRPMIdx == -1 || (MaxRPM - MinRPMIdx) <= 1)
 				throw new Exception("Invalid data");
@@ -287,7 +301,7 @@ namespace ELM327_LogConverter {
 			for (int i = 0; i < LogIndexFields.Length; i++) {
 				LogIndex Idx = (LogIndex)LogIndexFields[i].GetValue(this);
 
-				if (Idx?.Name == Name)
+				if (Idx != null && Idx.MatchesName(Name))
 					return Idx;
 			}
 
@@ -324,6 +338,57 @@ namespace ELM327_LogConverter {
 
 					yield return Entry;
 				}
+			}
+		}
+
+		int FindIndex(string[] Lines, string Src) {
+			for (int i = 0; i < Lines.Length; i++) {
+				if (Lines[i] == Src)
+					return i;
+			}
+
+			return 0;
+		}
+
+		IEnumerable<LogEntry> ParseEntriesHPT(string CSVFile) {
+			string[] Lines = File.ReadAllText(CSVFile).Trim().Split(new[] { '\n' }).Select(L => L.Trim()).ToArray();
+			DataCount = 0;
+
+			int ChannelInfoIdx = FindIndex(Lines, "[Channel Information]");
+			int ChannelDataIdx = FindIndex(Lines, "[Channel Data]");
+
+			string[] ChannelInfo = Lines.Skip(ChannelInfoIdx + 1).Take(ChannelDataIdx - ChannelInfoIdx - 1).ToArray();
+			string[] InfoNames = ChannelInfo[1].Split(new[] { ',' }).ToArray();
+
+			for (int i = 0; i < InfoNames.Length; i++) {
+				LogIndex Idx = GetField(InfoNames[i]);
+
+				if (Idx != null) {
+					Idx.CsvIndex = i;
+					Idx.Index = DataCount++;
+				}
+			}
+
+			LogIndices = LogIndices.Where(LI => LI.IsValid()).ToArray();
+			string[][] DataLines = Lines.Skip(ChannelDataIdx + 1).Select(L => L.Split(',')).ToArray();
+			LogEntry LastEntry = null;
+
+			for (int i = 0; i < DataLines.Length; i++) {
+				LogEntry Entry = new LogEntry(DataCount);
+
+				foreach (LogIndex LogIndex in LogIndices) {
+					/*if (!LogIndex.IsValid())
+						continue;*/
+
+					Entry[LogIndex] = LogIndex.Parse(DataLines[i][LogIndex.CsvIndex]);
+				}
+
+				if (LastEntry != null && LastEntry[RPM.Index] > Entry[RPM.Index]) {
+					continue;
+				}
+
+				LastEntry = Entry;
+				yield return Entry;
 			}
 		}
 
@@ -465,15 +530,19 @@ namespace ELM327_LogConverter {
 
 	public class LogIndex {
 		public string Name;
+		public string[] AltNames;
+
 		public int CsvIndex;
 		public int Index;
 		public ParseFunc Parse;
 
-		public LogIndex(string Name, ParseFunc Parse) {
+		public LogIndex(string[] Names, ParseFunc Parse) {
 			CsvIndex = -1;
 			Index = -1;
 
-			this.Name = Name;
+			this.Name = Names[0];
+			AltNames = Names.Skip(1).ToArray();
+
 			this.Parse = Parse;
 		}
 
@@ -482,6 +551,20 @@ namespace ELM327_LogConverter {
 				return false;
 
 			return true;
+		}
+
+		public bool MatchesName(string Name) {
+			if (this.Name == Name)
+				return true;
+
+			if (AltNames != null) {
+				for (int i = 0; i < AltNames.Length; i++) {
+					if (AltNames[i] == Name)
+						return true;
+				}
+			}
+
+			return false;
 		}
 
 		public string Serialize() {
@@ -498,6 +581,9 @@ namespace ELM327_LogConverter {
 		}
 
 		public static double ParseDate(string Str) {
+			if (Str.Count(C => C == '.') == 1)
+				return double.Parse(Str, CultureInfo.InvariantCulture);
+
 			return DateTime.Parse(Str).TimeOfDay.TotalSeconds;
 		}
 
