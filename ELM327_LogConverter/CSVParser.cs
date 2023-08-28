@@ -51,6 +51,8 @@ namespace ELM327_LogConverter {
 				DataEntries = ParseEntries(CSVFile).OrderBy(E => E[DeviceTime]).ToArray();
 			}
 
+			// Make sure speed never decreases
+
 			// Fix first entry and last entry to contain all valid data
 			foreach (var Idx in LogIndices) {
 				if (DataEntries[0][Idx] == -1) {
