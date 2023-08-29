@@ -245,9 +245,9 @@ namespace EngineCalculator {
         }
 
         private void btnRecalculate_Click(object sender, EventArgs e) {
-            CalculateInjectionAngle();
+            //CalculateInjectionAngle();
 
-            //CalculateSpark();
+            CalculateSpark();
         }
 
         string SerializeNum(string Storage, double Num) {
@@ -312,9 +312,9 @@ namespace EngineCalculator {
                 return;
 
             LookupTable2D Tbl = CurrentEdited.Table;
-            //Save("ignTable", "sbyte", 2, Tbl);
+            Save("ignTable", "sbyte", 2, Tbl);
 
-            Save("injectionAngle", "word", 1, Tbl);
+            //Save("injectionAngle", "word", 1, Tbl);
 
 
 

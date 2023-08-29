@@ -28,6 +28,10 @@
             this.label1 = new System.Windows.Forms.Label();
             this.Grid = new EngineCalculator.ReoGridControlHAAAX();
             this.btnSave = new System.Windows.Forms.Button();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
+            this.splitContainer1.Panel2.SuspendLayout();
+            this.splitContainer1.SuspendLayout();
             this.SuspendLayout();
             // 
             // tbAirTemp
@@ -65,7 +69,7 @@
             this.Grid.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
             this.Grid.ColumnHeaderContextMenuStrip = null;
             this.Grid.LeadHeaderContextMenuStrip = null;
-            this.Grid.Location = new System.Drawing.Point(15, 75);
+            this.Grid.Location = new System.Drawing.Point(3, 3);
             this.Grid.Name = "Grid";
             this.Grid.RowHeaderContextMenuStrip = null;
             this.Grid.Script = null;
@@ -74,7 +78,7 @@
             this.Grid.SheetTabVisible = true;
             this.Grid.SheetTabWidth = 60;
             this.Grid.ShowScrollEndSpacing = true;
-            this.Grid.Size = new System.Drawing.Size(1842, 963);
+            this.Grid.Size = new System.Drawing.Size(997, 950);
             this.Grid.TabIndex = 0;
             this.Grid.Text = "reoGridControl1";
             // 
@@ -88,19 +92,37 @@
             this.btnSave.UseVisualStyleBackColor = true;
             this.btnSave.Click += new System.EventHandler(this.btnSave_Click);
             // 
+            // splitContainer1
+            // 
+            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.splitContainer1.Location = new System.Drawing.Point(12, 82);
+            this.splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Controls.Add(this.Grid);
+            this.splitContainer1.Size = new System.Drawing.Size(1845, 956);
+            this.splitContainer1.SplitterDistance = 838;
+            this.splitContainer1.TabIndex = 5;
+            // 
             // TableConvert
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1869, 1050);
+            this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.btnSave);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnRecalculate);
             this.Controls.Add(this.tbAirTemp);
-            this.Controls.Add(this.Grid);
             this.Name = "TableConvert";
             this.Text = "TableConvert";
             this.Load += new System.EventHandler(this.TableConvert_Load);
+            this.splitContainer1.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
+            this.splitContainer1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -113,5 +135,6 @@
         private System.Windows.Forms.Button btnRecalculate;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btnSave;
+        private System.Windows.Forms.SplitContainer splitContainer1;
     }
 }
